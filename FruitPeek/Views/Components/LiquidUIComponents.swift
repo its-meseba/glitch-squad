@@ -266,8 +266,13 @@ struct TimerDisplay: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background {
-            Capsule()
-                .fill(isUrgent ? Color.red.opacity(0.8) : .ultraThinMaterial)
+            if isUrgent {
+                Capsule()
+                    .fill(Color.red.opacity(0.8))
+            } else {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+            }
         }
         .animation(.easeInOut(duration: 0.3), value: isUrgent)
     }

@@ -65,14 +65,17 @@ final class CameraPreviewUIView: UIView {
         layer.videoGravity = .resizeAspectFill
         layer.frame = bounds
 
+        // Set to 0 = native sensor orientation (landscape)
+        if let connection = layer.connection {
+            connection.videoRotationAngle = 0
+        }
+
         self.layer.addSublayer(layer)
         self.previewLayer = layer
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-
-        // Update layer frame when view size changes
         previewLayer?.frame = bounds
     }
 }

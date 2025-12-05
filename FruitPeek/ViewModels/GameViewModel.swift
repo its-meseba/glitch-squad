@@ -90,11 +90,11 @@ final class GameViewModel: ObservableObject {
     // MARK: - Initialization
 
     init(
-        cameraService: CameraService = CameraService(),
-        detector: DetectorService = DetectorService()
+        cameraService: CameraService? = nil,
+        detector: DetectorService? = nil
     ) {
-        self.cameraService = cameraService
-        self.detector = detector
+        self.cameraService = cameraService ?? CameraService()
+        self.detector = detector ?? DetectorService()
 
         // Set first target
         if let first = fruitsToFind.first {

@@ -46,33 +46,67 @@ actor DetectorService: ObjectDetecting {
 
     /// Set up the Core ML model for Vision
     private func setupModel() {
-        // Try to load the YOLO model (yolov8n.mlpackage compiles to yolov8n.mlmodelc)
-        guard let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: "mlmodelc")
-        else {
-            print("⚠️ yolov8n model not found - using mock detector")
-            isMockMode = true
+        // Debug: List all bundle resources
+        print("🔍 Searching for model in bundle...")
+        if let bundlePath = Bundle.main.resourcePath {
+            print("📁 Bundle path: \(bundlePath)")
+        }
+
+        // Try compiled model first (.mlmodelc)
+        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: "mlmodelc") {
+            print("✅ Found compiled model: \(modelURL)")
+            loadModel(from: modelURL)
             return
         }
 
+        // Try mlpackage
+        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: "mlpackage") {
+            print("✅ Found mlpackage: \(modelURL)")
+            loadModel(from: modelURL)
+            return
+        }
+
+        // Try without extension
+        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: nil) {
+            print("✅ Found model (no ext): \(modelURL)")
+            loadModel(from: modelURL)
+            return
+        }
+
+        print("⚠️ yolov8n model not found in bundle - using mock detector")
+        print("📋 Available resources:")
+        if let urls = Bundle.main.urls(forResourcesWithExtension: nil, subdirectory: nil) {
+            for url in urls.prefix(20) {
+                print("   - \(url.lastPathComponent)")
+            }
+        }
+        isMockMode = true
+    }
+
+    private func loadModel(from url: URL) {
         do {
             // Load the Core ML model
-            let mlModel = try MLModel(contentsOf: modelURL)
+            let config = MLModelConfiguration()
+            config.computeUnits = .all
+            let mlModel = try MLModel(contentsOf: url, configuration: config)
+
+            print("📊 Model loaded, creating Vision model...")
             let vnModel = try VNCoreMLModel(for: mlModel)
 
             // Create Vision request
-            detectionRequest = VNCoreMLRequest(model: vnModel) { [weak self] request, error in
+            detectionRequest = VNCoreMLRequest(model: vnModel) { request, error in
                 if let error = error {
-                    print("Detection error: \(error.localizedDescription)")
+                    print("❌ Detection error: \(error.localizedDescription)")
                 }
             }
 
             // Configure request for best accuracy
             detectionRequest?.imageCropAndScaleOption = .scaleFill
 
-            print("✅ YOLOv8 model loaded successfully")
+            print("✅ YOLOv8 model ready for detection!")
 
         } catch {
-            print("⚠️ Failed to load model: \(error.localizedDescription)")
+            print("❌ Failed to load model: \(error)")
             isMockMode = true
         }
     }
@@ -90,11 +124,17 @@ actor DetectorService: ObjectDetecting {
         return await performVisionDetection(pixelBuffer: pixelBuffer)
     }
 
+    /// Counter for logging frequency
+    private var frameCount = 0
+
     /// Real Vision-based detection
     private func performVisionDetection(pixelBuffer: CVPixelBuffer) async -> [DetectionResult] {
         guard let request = detectionRequest else {
+            print("❌ No detection request available")
             return []
         }
+
+        frameCount += 1
 
         // Create image request handler
         let handler = VNImageRequestHandler(
@@ -103,29 +143,69 @@ actor DetectorService: ObjectDetecting {
         do {
             try handler.perform([request])
 
-            // Parse results
-            guard let observations = request.results as? [VNRecognizedObjectObservation] else {
-                return []
-            }
+            // Log every 30 frames to avoid spam
+            let shouldLog = frameCount % 30 == 0
 
-            // Convert to DetectionResult, filtering for target fruits
-            return observations.compactMap { observation -> DetectionResult? in
-                guard let topLabel = observation.labels.first,
-                    topLabel.confidence >= confidenceThreshold,
-                    targetLabels.contains(topLabel.identifier.lowercased())
-                else {
-                    return nil
+            // Check all possible result types
+            if let results = request.results {
+                if shouldLog {
+                    print("📊 Frame \(frameCount): Got \(results.count) results")
                 }
 
-                return DetectionResult(
-                    label: topLabel.identifier.lowercased(),
-                    confidence: topLabel.confidence,
-                    boundingBox: observation.boundingBox
-                )
+                // Try as VNRecognizedObjectObservation (YOLO object detection)
+                if let observations = results as? [VNRecognizedObjectObservation] {
+                    if shouldLog && !observations.isEmpty {
+                        print("🎯 Object detections:")
+                        for obs in observations.prefix(5) {
+                            print(
+                                "   - \(obs.labels.map { "\($0.identifier): \($0.confidence)" }.joined(separator: ", "))"
+                            )
+                        }
+                    }
+
+                    // Convert to DetectionResult, filtering for target fruits
+                    let filtered = observations.compactMap { observation -> DetectionResult? in
+                        guard let topLabel = observation.labels.first,
+                            topLabel.confidence >= confidenceThreshold,
+                            targetLabels.contains(topLabel.identifier.lowercased())
+                        else {
+                            return nil
+                        }
+
+                        return DetectionResult(
+                            label: topLabel.identifier.lowercased(),
+                            confidence: topLabel.confidence,
+                            boundingBox: observation.boundingBox
+                        )
+                    }
+
+                    if shouldLog && !filtered.isEmpty {
+                        print("✅ Matched fruits: \(filtered.map { $0.label })")
+                    }
+
+                    return filtered
+                }
+
+                // Try as VNClassificationObservation (image classification)
+                if let classifications = results as? [VNClassificationObservation] {
+                    if shouldLog {
+                        print("📋 Classifications:")
+                        for cls in classifications.prefix(5) {
+                            print("   - \(cls.identifier): \(cls.confidence)")
+                        }
+                    }
+                }
+
+                // Unknown result type
+                if shouldLog {
+                    print("❓ Unknown result type: \(type(of: results.first))")
+                }
             }
 
+            return []
+
         } catch {
-            print("Vision detection failed: \(error.localizedDescription)")
+            print("❌ Vision detection failed: \(error)")
             return []
         }
     }

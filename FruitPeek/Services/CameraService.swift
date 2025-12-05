@@ -134,11 +134,7 @@ final class CameraService: NSObject, ObservableObject {
             throw CameraError.cannotAddOutput
         }
 
-        // Set video orientation
-        if let connection = videoOutput.connection(with: .video) {
-            // Use the new rotation API for iOS 17+
-            connection.videoRotationAngle = 90
-        }
+        // No rotation - using raw camera data
 
         // Commit configuration
         captureSession.commitConfiguration()

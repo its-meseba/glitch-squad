@@ -233,6 +233,7 @@ struct MainGameView: View {
                 .padding(.vertical, 12)
                 .background(.ultraThinMaterial, in: Capsule())
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     // MARK: - Bottom Hint
