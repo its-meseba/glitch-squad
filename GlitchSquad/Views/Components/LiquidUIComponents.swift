@@ -1,6 +1,6 @@
 //
 //  LiquidUIComponents.swift
-//  FruitPeek
+//  GlitchSquad
 //
 //  Reusable UI components with "Liquid Glass iOS 26" aesthetic.
 //  Glassmorphism, vibrant gradients, and smooth animations.

@@ -1,6 +1,6 @@
 //
 //  CameraPreviewView.swift
-//  FruitPeek
+//  GlitchSquad
 //
 //  UIViewRepresentable wrapper for AVCaptureVideoPreviewLayer.
 //  Displays live camera feed as SwiftUI view background.

@@ -1,4 +1,4 @@
-name: FruitPeek
+name: GlitchSquad
 options:
   bundleIdPrefix: com.upily
   deploymentTarget:
@@ -15,31 +15,38 @@ settings:
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
 targets:
-  FruitPeek:
+  GlitchSquad:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
     
     sources:
-      - path: FruitPeek
+      - path: GlitchSquad
         excludes:
           - "**/*.md"
           - "Resources/**"
           - "Info.plist"
     
     resources:
-      - path: FruitPeek/Resources/Assets.xcassets
-      - path: FruitPeek/Resources/yolov8n.mlpackage
+      - path: GlitchSquad/Resources/Assets.xcassets
+      - path: GlitchSquad/Resources/yolov8n.mlpackage
+        buildPhase: resources
+      - path: GlitchSquad/Resources/Sounds
+        optional: true
         buildPhase: resources
     
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.upily.fruitpeek
+        PRODUCT_BUNDLE_IDENTIFIER: com.upily.glitchsquad
+        PRODUCT_NAME: "Glitch Squad"
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: YES
         COREML_CODEGEN_LANGUAGE: Swift
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_NSCameraUsageDescription: "FruitPeek needs camera access to help you find fruits in the scavenger hunt!"
+        INFOPLIST_KEY_CFBundleDisplayName: "Glitch Squad"
+        INFOPLIST_KEY_NSCameraUsageDescription: "Glitch Squad needs camera access to help Pixel find items in the real world!"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Glitch Squad may use the microphone for voice features."
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Glitch Squad uses speech for Pixel's voice."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIRequiresFullScreen: YES

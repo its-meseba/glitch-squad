@@ -1,9 +1,9 @@
 //
 //  GameViewModel.swift
-//  FruitPeek
+//  GlitchSquad
 //
 //  The brain of the game - manages state machine, confidence bucket,
-//  and coordinates camera/detection services.
+//  mission progression, and coordinates all services.
 //
 
 import AVFoundation
@@ -12,32 +12,35 @@ import SwiftUI
 
 // MARK: - Game State
 
-/// The current state of the scavenger hunt game
+/// The current state of the Glitch Squad game
 enum GameState: Equatable {
-    case goal  // Showing target fruit card with "Ready?" button
-    case hunt  // Camera active, timer counting down
+    case intro  // Opening cinematic with Pixel
+    case missionBriefing  // Pixel explains the mission
+    case goal  // (Legacy - not used in new flow)
+    case hunt  // Camera active, searching for target
     case lockOn  // Object detected, filling confidence meter
-    case success  // Found it! Celebration time
-    case gameOver  // All fruits found - game complete
+    case digitizing  // Capture animation
+    case success  // Mission complete celebration
+    case gameOver  // All missions done - Pixel repaired!
 }
 
 // MARK: - Game View Model
 
 /// Central game logic coordinator using MVVM pattern.
-/// Manages the state machine, confidence bucket, and all game mechanics.
+/// Manages state machine, missions, confidence bucket, and all game mechanics.
 @MainActor
 final class GameViewModel: ObservableObject {
 
     // MARK: - Published State
 
     /// Current game state for UI binding
-    @Published private(set) var gameState: GameState = .goal
+    @Published private(set) var gameState: GameState = .intro
 
     /// Current fruit to find
     @Published private(set) var currentTarget: TargetFruit = .apple
 
     /// Time remaining in hunt phase (seconds)
-    @Published private(set) var timeRemaining: Int = 30
+    @Published private(set) var timeRemaining: Int = 60
 
     /// Lock-on progress from 0.0 to 1.0 (100% = success)
     @Published private(set) var lockOnProgress: Double = 0.0
@@ -54,6 +57,21 @@ final class GameViewModel: ObservableObject {
     /// Latest detection for showing bounding box
     @Published private(set) var currentDetection: DetectionResult?
 
+    /// Current mission being played
+    @Published private(set) var currentMission: Mission = Mission.campaign[0]
+
+    /// Current mission index (0-2)
+    @Published private(set) var currentMissionIndex: Int = 0
+
+    /// Total Glitch Bits earned
+    @Published private(set) var glitchBits: Int = 0
+
+    /// Pixel's current state (for character display)
+    @Published private(set) var pixelState: PixelState = .sad
+
+    /// Whether the intro has been seen
+    @AppStorage("hasSeenIntro") private var hasSeenIntro: Bool = false
+
     // MARK: - Services
 
     let cameraService: CameraService
@@ -61,8 +79,8 @@ final class GameViewModel: ObservableObject {
 
     // MARK: - Private State
 
-    /// Fruits remaining to find
-    private var fruitsToFind: [TargetFruit] = TargetFruit.allCases.shuffled()
+    /// Missions remaining
+    private var missionsRemaining: [Mission] = Mission.campaign
 
     /// Task for frame processing
     private var processingTask: Task<Void, Never>?
@@ -85,7 +103,7 @@ final class GameViewModel: ObservableObject {
     private let confidenceDecay: Double = 0.03  // 3% per update
 
     /// Starting time for hunt phase
-    private let huntDuration: Int = 30
+    private let huntDuration: Int = 60
 
     // MARK: - Initialization
 
@@ -96,15 +114,17 @@ final class GameViewModel: ObservableObject {
         self.cameraService = cameraService ?? CameraService()
         self.detector = detector ?? DetectorService()
 
-        // Set first target
-        if let first = fruitsToFind.first {
-            currentTarget = first
+        // Set first mission
+        if let first = missionsRemaining.first {
+            currentMission = first
+            currentTarget = first.target
+            pixelState = first.pixelStateBefore
         }
     }
 
     // MARK: - Public Actions
 
-    /// Called when app launches - setup camera
+    /// Called when app launches - setup camera and determine starting state
     func onAppear() async {
         // Request camera permission
         isCameraAuthorized = await cameraService.requestAuthorization()
@@ -116,11 +136,28 @@ final class GameViewModel: ObservableObject {
                 print("Camera setup failed: \(error.localizedDescription)")
             }
         }
+
+        // Determine starting state
+        if hasSeenIntro {
+            // Skip intro on subsequent launches
+            gameState = .missionBriefing
+        } else {
+            gameState = .intro
+        }
     }
 
-    /// Called when player taps "Ready?" button
+    /// Called when intro animation completes
+    func completeIntro() {
+        hasSeenIntro = true
+
+        withAnimation(.easeInOut(duration: 0.5)) {
+            gameState = .missionBriefing
+        }
+    }
+
+    /// Called when player taps "Accept Mission" button
     func startHunt() {
-        guard gameState == .goal else { return }
+        guard gameState == .missionBriefing || gameState == .goal else { return }
 
         // Transition to hunt state
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -148,23 +185,39 @@ final class GameViewModel: ObservableObject {
         generator.impactOccurred()
     }
 
-    /// Move to next fruit or end game
-    func nextRound() {
-        // Remove found fruit
-        fruitsToFind.removeFirst()
+    /// Called when digitize animation completes
+    func completeDigitize() {
+        // Update Pixel's state briefly
+        pixelState = currentMission.pixelStateAfter
 
-        if fruitsToFind.isEmpty {
+        // Transition to success
+        withAnimation(.easeInOut(duration: 0.3)) {
+            gameState = .success
+        }
+    }
+
+    /// Move to next mission or end game
+    func nextRound() {
+        // Remove completed mission
+        missionsRemaining.removeFirst()
+
+        if missionsRemaining.isEmpty {
             // Game complete!
-            gameState = .gameOver
+            withAnimation {
+                gameState = .gameOver
+            }
         } else {
-            // Set next target
-            currentTarget = fruitsToFind[0]
+            // Set next mission
+            currentMission = missionsRemaining[0]
+            currentTarget = currentMission.target
+            currentMissionIndex += 1
+            pixelState = currentMission.pixelStateBefore
             lockOnProgress = 0.0
             currentDetection = nil
 
-            // Back to goal state
+            // Back to briefing
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                gameState = .goal
+                gameState = .missionBriefing
             }
         }
     }
@@ -176,16 +229,23 @@ final class GameViewModel: ObservableObject {
         stopFrameProcessing()
         cameraService.stopSession()
 
-        // Reset state
-        fruitsToFind = TargetFruit.allCases.shuffled()
-        currentTarget = fruitsToFind[0]
+        // Reset mission state
+        missionsRemaining = Mission.campaign
+        currentMission = missionsRemaining[0]
+        currentTarget = currentMission.target
+        currentMissionIndex = 0
+        pixelState = currentMission.pixelStateBefore
+
+        // Reset score
         score = 0
+        glitchBits = 0
         lockOnProgress = 0.0
         timeRemaining = huntDuration
         currentDetection = nil
 
+        // Start from briefing (not intro on replay)
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            gameState = .goal
+            gameState = .missionBriefing
         }
     }
 
@@ -323,22 +383,18 @@ final class GameViewModel: ObservableObject {
         stopFrameProcessing()
         cameraService.stopSession()
 
-        // Update score
+        // Update score and bits
         score += 1
+        glitchBits += currentMission.rewardBits
 
-        // Transition to success state
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-            gameState = .success
+        // Transition to digitizing state
+        withAnimation(.easeInOut(duration: 0.2)) {
+            gameState = .digitizing
         }
 
         // Success haptics
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
-
-        // Auto-advance after celebration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-            self?.nextRound()
-        }
     }
 
     // MARK: - Cleanup
@@ -361,7 +417,9 @@ final class GameViewModel: ObservableObject {
 
 extension GameViewModel {
     /// Create a preview instance with mocked state
-    static func preview(state: GameState = .goal, progress: Double = 0.0) -> GameViewModel {
+    static func preview(state: GameState = .missionBriefing, progress: Double = 0.0)
+        -> GameViewModel
+    {
         let vm = GameViewModel()
         vm.gameState = state
         vm.lockOnProgress = progress

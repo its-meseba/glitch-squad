@@ -1,6 +1,6 @@
 //
 //  DetectorService.swift
-//  FruitPeek
+//  GlitchSquad
 //
 //  Handles Core ML object detection using Vision framework.
 //  Falls back to mock detector for testing if model not available.

@@ -1,8 +1,8 @@
 //
 //  DetectionResult.swift
-//  FruitPeek
+//  GlitchSquad
 //
-//  Created for FruitPeek - A Scavenger Hunt Game for Kids
+//  Created for GlitchSquad - A Scavenger Hunt Game for Kids
 //
 
 import Foundation

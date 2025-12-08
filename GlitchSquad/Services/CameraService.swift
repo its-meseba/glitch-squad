@@ -1,6 +1,6 @@
 //
 //  CameraService.swift
-//  FruitPeek
+//  GlitchSquad
 //
 //  Manages AVCaptureSession for live camera feed.
 //  Outputs CVPixelBuffer stream for Vision processing.
