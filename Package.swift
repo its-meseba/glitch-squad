@@ -11,14 +11,14 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "FruitPeek",
-            targets: ["FruitPeek"]
+            name: "GlitchSquad",
+            targets: ["GlitchSquad"]
         )
     ],
     targets: [
         .target(
-            name: "FruitPeek",
-            path: "FruitPeek"
+            name: "GlitchSquad",
+            path: "GlitchSquad"
         )
     ]
 )

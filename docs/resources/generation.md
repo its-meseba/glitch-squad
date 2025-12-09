@@ -120,7 +120,7 @@ A dark, futuristic control room interior for a kids game. Moody deep purple and 
 - **Format**: PNG with transparent background
 - **Prompt**:
 ```
-Isometric floating island for kids game, stage 1 "broken". Small rocky platform floating in space. Dark purple and grey colors, cracked ground, dead tree stump, no grass. Glitchy digital artifacts around edges. Dim red warning lights. Sad, damaged look but child-friendly (not scary). Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
+Isometric floating island for kids game, stage 1 "broken". A damaged, smoking emergency robot shelter (like a crashed pod or tattered tent) sits on a cracked rocky platform. Dead tree stump, no grass. Sparking wires and glitchy digital artifacts around the edges. Dim red warning lights blinking. Sad, dangerous atmosphere but child-friendly. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
 ```
 
 ### Base Stage 2: Stabilizing
@@ -129,7 +129,7 @@ Isometric floating island for kids game, stage 1 "broken". Small rocky platform 
 - **Format**: PNG with transparent background
 - **Prompt**:
 ```
-Isometric floating island for kids game, stage 2 "stabilizing". Same rocky platform but starting to heal. Some green patches of grass appearing. Small sapling tree growing. Colors transitioning from grey to soft green/blue. Yellow energy particles floating. Hopeful feeling. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
+Isometric floating island for kids game, stage 2 "stabilizing". The robot base is under repair: a small, clean futuristic module has replaced the damaged shelter. Blue light indicators are active. The rocky platform is healing with green patches of grass and a small sapling tree. Solar panels unfolding. Yellow energy particles floating. Hopeful feeling. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
 ```
 
 ### Base Stage 3: Growing
@@ -138,7 +138,7 @@ Isometric floating island for kids game, stage 2 "stabilizing". Same rocky platf
 - **Format**: PNG with transparent background
 - **Prompt**:
 ```
-Isometric floating island for kids game, stage 3 "growing". Vibrant and healthy floating island. Lush green grass, medium tree with leaves, colorful flowers. Small pond or water feature. Soft blue and green colors. Floating sparkles. Happy, nature-filled vibe. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
+Isometric floating island for kids game, stage 3 "growing". A fully functional, high-tech robot base station with shiny metal surfaces, a bio-dome, and a rotating communication antenna. The island is vibrant with lush green grass, a medium tree, and colorful flowers. Small pond or water feature reflecting the tech. Soft blue and green colors. Floating sparkles. Happy, nature-meets-tech vibe. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
 ```
 
 ### Base Stage 4: Restored (Paradise)
@@ -147,7 +147,7 @@ Isometric floating island for kids game, stage 3 "growing". Vibrant and healthy 
 - **Format**: PNG with transparent background
 - **Prompt**:
 ```
-Isometric floating island for kids game, stage 4 "fully restored paradise". Beautiful floating eco dome island. Large healthy tree with glowing fruit. Rainbow flowers, butterflies, small waterfall. Golden sunlight effects. Magical floating crystals. Celebration confetti particles. Pure joy and accomplishment feeling. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
+Isometric floating island for kids game, stage 4 "fully restored paradise". A grand, futuristic headquarters with a glowing eco-dome and holographic displays. The technology integrates perfectly with nature: a large healthy tree with glowing fruit, rainbow flowers, and a small waterfall. Golden sunlight effects. Magical floating crystals and celebration confetti. Pure joy and accomplishment. Simple low-poly 3D illustration style. 800x600 pixels, transparent background.
 ```
 
 ---
@@ -328,7 +328,8 @@ Excited robot voice: "YES! Target acquired! Systems charging..." Happy and relie
 - **Duration**: 2-3 seconds
 - **Script**:
 ```
-"Perfect! My circuits are tingling!"
+
+
 ```
 - **Prompt**:
 ```
@@ -345,6 +346,42 @@ Joyful robot voice: "Perfect! My circuits are tingling!" Playful and silly. Slig
 - **Prompt**:
 ```
 Proud robot voice: "Amazing work, Agent! Power levels rising!" Grateful and impressed. Sounds like power meter filling up at end.
+```
+
+### Voice 9: Progress - 1 Item Found
+- **Path**: `GlitchSquad/Resources/Sounds/Voice/progress_1_found.mp3`
+- **Duration**: 6-8 seconds
+- **Script**:
+```
+"Wonderful! I am getting better and you're saving my world! Now you need to find a BANANA!"
+```
+- **Prompt**:
+```
+Friendly robot voice, encouraging and grateful: "Wonderful! I am getting better and you're saving my world! Now you need to find a BANANA!" Warm, hopeful tone.
+```
+
+### Voice 10: Progress - 2 Items Found
+- **Path**: `GlitchSquad/Resources/Sounds/Voice/progress_2_found.mp3`
+- **Duration**: 6-8 seconds
+- **Script**:
+```
+"Spectacular! Systems are at 70 percent! Just one more to go. Find me an ORANGE!"
+```
+- **Prompt**:
+```
+Excited, high-energy robot voice: "Spectacular! Systems are at 70 percent! Just one more to go. Find me an ORANGE!" Building anticipation.
+```
+
+### Voice 11: Main Menu - All Found (Day Complete)
+- **Path**: `GlitchSquad/Resources/Sounds/Voice/day_complete.mp3`
+- **Duration**: 5-6 seconds
+- **Script**:
+```
+"Thank you for today! See you later for our next mission!"
+```
+- **Prompt**:
+```
+Warm, goodbye tone robot voice: "Thank you for today! See you later for our next mission!" Peaceful and satisfied.
 ```
 
 ### Voice 8: Game Complete

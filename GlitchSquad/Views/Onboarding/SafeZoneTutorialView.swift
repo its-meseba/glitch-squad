@@ -3,7 +3,7 @@
 //  GlitchSquad
 //
 //  First-run tutorial explaining where to search safely.
-//  Teaches kids about allowed play areas.
+//  Optimized for iPad/iPhone horizontal (landscape) orientation.
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ import SwiftUI
 // MARK: - Safe Zone Tutorial View
 
 /// First-run onboarding teaching safe search areas
+/// Redesigned for horizontal/landscape orientation
 struct SafeZoneTutorialView: View {
 
     let onComplete: () -> Void
@@ -18,74 +19,119 @@ struct SafeZoneTutorialView: View {
     @State private var currentPage: Int = 0
 
     var body: some View {
-        ZStack {
-            // Background
-            backgroundGradient
+        GeometryReader { geometry in
+            ZStack {
+                // Background
+                backgroundGradient
 
-            VStack(spacing: 0) {
-                // Skip button
-                HStack {
-                    Spacer()
-                    Button("Skip") {
-                        onComplete()
-                    }
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .padding()
+                // Main horizontal layout
+                HStack(spacing: 0) {
+                    // Left side - Main content (70%)
+                    contentSection
+                        .frame(width: geometry.size.width * 0.70)
+
+                    // Right side - Navigation controls (30%)
+                    navigationSection
+                        .frame(width: geometry.size.width * 0.30)
                 }
-
-                // Content
-                TabView(selection: $currentPage) {
-                    welcomePage.tag(0)
-                    safeZonesPage.tag(1)
-                    privacyPage.tag(2)
-                    readyPage.tag(3)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-
-                // Page indicators and button
-                VStack(spacing: 24) {
-                    // Dots
-                    HStack(spacing: 8) {
-                        ForEach(0..<4, id: \.self) { i in
-                            Circle()
-                                .fill(
-                                    i == currentPage
-                                        ? Color(hex: "00D9FF") : Color.white.opacity(0.3)
-                                )
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-
-                    // Button
-                    Button(action: {
-                        if currentPage < 3 {
-                            withAnimation {
-                                currentPage += 1
-                            }
-                        } else {
-                            onComplete()
-                        }
-                    }) {
-                        Text(currentPage < 3 ? "Next" : "Let's Go!")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color(hex: "00D9FF"), Color(hex: "6366F1")],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                in: RoundedRectangle(cornerRadius: 16)
-                            )
-                    }
-                    .padding(.horizontal, 40)
-                }
-                .padding(.bottom, 50)
             }
         }
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Content Section (Left 70%)
+
+    private var contentSection: some View {
+        ZStack {
+            TabView(selection: $currentPage) {
+                welcomePageHorizontal.tag(0)
+                safeZonesPageHorizontal.tag(1)
+                privacyPageHorizontal.tag(2)
+                readyPageHorizontal.tag(3)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .padding(.leading, 40)
+        .padding(.vertical, 20)
+    }
+
+    // MARK: - Navigation Section (Right 30%)
+
+    private var navigationSection: some View {
+        VStack {
+            // Skip button (top right)
+            HStack {
+                Spacer()
+                Button("Skip") {
+                    onComplete()
+                }
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.5))
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+            }
+
+            Spacer()
+
+            // Navigation card
+            VStack(spacing: 20) {
+                // Page title
+                Text(pageTitles[currentPage])
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+
+                // Page dots
+                HStack(spacing: 6) {
+                    ForEach(0..<4, id: \.self) { i in
+                        Circle()
+                            .fill(
+                                i == currentPage
+                                    ? Color(hex: "00D9FF") : Color.white.opacity(0.3)
+                            )
+                            .frame(width: 8, height: 8)
+                    }
+                }
+
+                // Next button (compact)
+                Button(action: {
+                    if currentPage < 3 {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            currentPage += 1
+                        }
+                    } else {
+                        onComplete()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Text(currentPage < 3 ? "Next" : "Let's Go!")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "00D9FF"), Color(hex: "6366F1")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: Capsule()
+                    )
+                    .shadow(color: Color(hex: "00D9FF").opacity(0.3), radius: 10, x: 0, y: 4)
+                }
+            }
+            .padding(24)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+    }
+
+    private var pageTitles: [String] {
+        ["Meet Pixel!", "Safe Zones", "Privacy", "Ready?"]
     }
 
     // MARK: - Background
@@ -100,133 +146,218 @@ struct SafeZoneTutorialView: View {
             startPoint: .top,
             endPoint: .bottom
         )
-        .ignoresSafeArea()
     }
 
-    // MARK: - Page 1: Welcome
+    // MARK: - Page 1: Welcome (Horizontal)
 
-    private var welcomePage: some View {
-        VStack(spacing: 32) {
-            Spacer()
+    private var welcomePageHorizontal: some View {
+        HStack(spacing: 40) {
+            // Pixel character on left
+            PixelCharacterView(state: .happy, size: 180)
+                .shadow(color: Color(hex: "00FF94").opacity(0.3), radius: 30, x: 0, y: 10)
 
-            // Pixel character
-            PixelCharacterView(state: .happy, size: 150)
+            // Text content on right
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Your robot friend needs help!")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
 
-            Text("Meet Pixel!")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("Your robot friend needs your help!\nHis base is broken and only YOU can fix it.")
-                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-
-            Spacer()
-            Spacer()
-        }
-    }
-
-    // MARK: - Page 2: Safe Zones
-
-    private var safeZonesPage: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Text("🏠")
-                .font(.system(size: 80))
-
-            Text("Where to Look")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("Search in safe places around your home!")
+                Text(
+                    "Pixel's base is broken and only YOU can fix it by finding real objects around your home!"
+                )
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.7))
+                .lineSpacing(4)
 
-            VStack(alignment: .leading, spacing: 16) {
-                SafeZoneRow(emoji: "🍳", name: "Kitchen", isAllowed: true)
-                SafeZoneRow(emoji: "🛋️", name: "Living Room", isAllowed: true)
-                SafeZoneRow(emoji: "🛏️", name: "Bedroom", isAllowed: true)
-                SafeZoneRow(emoji: "🌳", name: "Outside Alone", isAllowed: false)
-                SafeZoneRow(emoji: "🚗", name: "Near Roads", isAllowed: false)
+                // Mission count badge
+                HStack(spacing: 8) {
+                    Image(systemName: "target")
+                        .foregroundStyle(Color(hex: "FF6B6B"))
+                    Text("3 missions to complete")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(.top, 8)
             }
-            .padding(24)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 40)
-
-            Spacer()
-            Spacer()
+            .padding(.trailing, 40)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Page 3: Privacy
+    // MARK: - Page 2: Safe Zones (Horizontal)
 
-    private var privacyPage: some View {
-        VStack(spacing: 32) {
-            Spacer()
+    private var safeZonesPageHorizontal: some View {
+        HStack(spacing: 32) {
+            // House icon on left
+            VStack(spacing: 16) {
+                Text("🏠")
+                    .font(.system(size: 80))
+                Text("Search at\nHome")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 140)
 
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "00FF94"), Color(hex: "00D9FF")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            // Safe zones grid on right
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    SafeZoneCompactRow(emoji: "🍳", name: "Kitchen", isAllowed: true)
+                    SafeZoneCompactRow(emoji: "🛋️", name: "Living Room", isAllowed: true)
+                }
+                HStack(spacing: 12) {
+                    SafeZoneCompactRow(emoji: "🛏️", name: "Bedroom", isAllowed: true)
+                    SafeZoneCompactRow(emoji: "🌳", name: "Outside Alone", isAllowed: false)
+                }
+            }
+            .padding(.trailing, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Page 3: Privacy (Horizontal)
+
+    private var privacyPageHorizontal: some View {
+        HStack(spacing: 40) {
+            // Shield icon on left
+            VStack(spacing: 16) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 70))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(hex: "00FF94"), Color(hex: "00D9FF")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
 
-            Text("Your Privacy is Safe")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            VStack(alignment: .leading, spacing: 16) {
-                PrivacyRow(icon: "iphone", text: "Photos stay on your device")
-                PrivacyRow(icon: "trash", text: "Deleted instantly after scanning")
-                PrivacyRow(icon: "wifi.slash", text: "Works without internet")
-                PrivacyRow(icon: "eye.slash", text: "No one else can see")
+                Text("100%\nPrivate")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
             }
-            .padding(24)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 40)
+            .frame(width: 140)
 
-            Spacer()
-            Spacer()
+            // Privacy points grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                PrivacyCompactCard(icon: "iphone", text: "Stays on device")
+                PrivacyCompactCard(icon: "trash", text: "Deleted instantly")
+                PrivacyCompactCard(icon: "wifi.slash", text: "No internet needed")
+                PrivacyCompactCard(icon: "eye.slash", text: "Parents only")
+            }
+            .padding(.trailing, 20)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Page 4: Ready
+    // MARK: - Page 4: Ready (Horizontal)
 
-    private var readyPage: some View {
-        VStack(spacing: 32) {
-            Spacer()
+    private var readyPageHorizontal: some View {
+        HStack(spacing: 40) {
+            // Pixel glitching on left
+            VStack(spacing: 12) {
+                PixelCharacterView(state: .glitching, size: 150)
+                    .shadow(color: Color(hex: "FF6B6B").opacity(0.4), radius: 20, x: 0, y: 8)
 
-            PixelCharacterView(state: .glitching, size: 150)
-
-            Text("Help Pixel!")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text("Find real objects to repair his base.\nComplete 3 missions to fully restore it!")
-                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.7))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-
-            // Mission preview
-            HStack(spacing: 16) {
-                MissionPreviewBadge(emoji: "🍎", name: "Apple")
-                MissionPreviewBadge(emoji: "🍌", name: "Banana")
-                MissionPreviewBadge(emoji: "🍊", name: "Orange")
+                Text("⚠️ Critical!")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color(hex: "FF6B6B"))
             }
+            .frame(width: 180)
 
-            Spacer()
-            Spacer()
+            // Mission objectives on right
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Find these items to repair:")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 16) {
+                    MissionPreviewCard(emoji: "🍎", name: "Apple", description: "Power Source")
+                    MissionPreviewCard(emoji: "🍌", name: "Banana", description: "Stabilizer")
+                    MissionPreviewCard(emoji: "🍊", name: "Orange", description: "Shield Core")
+                }
+            }
+            .padding(.trailing, 20)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Supporting Views (Compact for Horizontal)
+
+struct SafeZoneCompactRow: View {
+    let emoji: String
+    let name: String
+    let isAllowed: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(emoji)
+                .font(.system(size: 24))
+
+            Text(name)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+
+            Spacer()
+
+            Image(systemName: isAllowed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(isAllowed ? Color(hex: "00FF94") : Color(hex: "FF6B6B"))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .frame(minWidth: 160)
+    }
+}
+
+struct PrivacyCompactCard: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(Color(hex: "00D9FF"))
+                .frame(width: 24)
+
+            Text(text)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundStyle(.white)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct MissionPreviewCard: View {
+    let emoji: String
+    let name: String
+    let description: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(emoji)
+                .font(.system(size: 36))
+
+            Text(name)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+
+            Text(description)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.6))
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Legacy Supporting Views (kept for compatibility)
 
 struct SafeZoneRow: View {
     let emoji: String
@@ -289,6 +420,7 @@ struct MissionPreviewBadge: View {
 
 // MARK: - Preview
 
-#Preview("Safe Zone Tutorial") {
+#Preview("Safe Zone Tutorial - Horizontal") {
     SafeZoneTutorialView(onComplete: {})
+        .previewInterfaceOrientation(.landscapeLeft)
 }

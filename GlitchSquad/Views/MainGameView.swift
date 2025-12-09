@@ -185,20 +185,25 @@ struct MainGameView: View {
 
     @ViewBuilder
     private func gameHUDLayer(in geometry: GeometryProxy) -> some View {
-        VStack(spacing: 0) {
-            // Top section: Target card prominently displayed
-            VStack(spacing: 16) {
-                topBar
-                    .padding(.top, geometry.safeAreaInsets.top + 12)
-
-                // Large target display at top
+        ZStack {
+            // Top Center: Large Target Display
+            VStack {
                 targetDisplay
+                    .padding(.top, geometry.safeAreaInsets.top + 20)
+                Spacer()
             }
 
-            Spacer()
+            // Top Left/Right: Timer and Score
+            VStack {
+                topBar
+                    .padding(.top, geometry.safeAreaInsets.top + 12)
+                Spacer()
+            }
 
             // Bottom: Scanning zone hint + instructions
             VStack(spacing: 16) {
+                Spacer()
+
                 if viewModel.gameState == .lockOn {
                     Text("TARGET ACQUIRED! HOLD STEADY...")
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
@@ -218,6 +223,27 @@ struct MainGameView: View {
             .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.gameState)
+        // Audio Feedback Triggers
+        .onChange(of: viewModel.gameState) { newState in
+            if newState == .lockOn {
+                // Play lock-on start sound
+                audioService.playSound(.targetLock)
+            } else if newState == .success {
+                // Play success sound
+                audioService.playSound(.successPowerup)
+            }
+        }
+        // Continuous feedback during lock-on
+        .onChange(of: viewModel.lockOnProgress) { progress in
+            if progress > 0.1 && viewModel.gameState == .lockOn {
+                // Play ticking sound based on progress steps
+                let step = Int(progress * 10)
+                if step > Int((progress - 0.02) * 10) {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                }
+            }
+        }
     }
 
     // MARK: - Target Display

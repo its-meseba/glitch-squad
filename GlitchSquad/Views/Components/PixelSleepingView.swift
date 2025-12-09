@@ -15,215 +15,214 @@ struct PixelSleepingView: View {
 
     let dailyProgress: DailyProgress
     let onParentOverride: () -> Void
+    let onBack: (() -> Void)?
+
+    @Environment(\.dismiss) private var dismiss
 
     @State private var moonOffset: CGFloat = 0
     @State private var starsOpacity: Double = 0
     @State private var zzzOffset: CGFloat = 0
     @State private var showParentButton: Bool = false
 
+    init(
+        dailyProgress: DailyProgress, onParentOverride: @escaping () -> Void,
+        onBack: (() -> Void)? = nil
+    ) {
+        self.dailyProgress = dailyProgress
+        self.onParentOverride = onParentOverride
+        self.onBack = onBack
+    }
+
     var body: some View {
         ZStack {
-            // Night sky background
-            nightBackground
+            // Night sky background (Deep Blue)
+            Color(hex: "0D0E25").ignoresSafeArea()
 
-            // Stars
+            // Subtle Stars
             starsView
 
-            VStack(spacing: 32) {
+            VStack(spacing: 0) {
+                // Top Bar with Back Button
+                HStack {
+                    Button(action: {
+                        if let onBack = onBack {
+                            onBack()
+                        } else {
+                            dismiss()
+                        }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Back")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                        }
+                        .foregroundStyle(Color(hex: "00D9FF"))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color(hex: "1A1F35").opacity(0.8))
+                        .clipShape(Capsule())
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
                 Spacer()
 
-                // Moon
-                moonView
+                // Main Content - Horizontal Layout
+                HStack(spacing: 24) {
+                    // LEFT SIDE: Sleeping Pixel with Zzz animation
+                    ZStack {
+                        // Glow behind
+                        Circle()
+                            .fill(Color(hex: "00D9FF").opacity(0.15))
+                            .frame(width: 150, height: 150)
+                            .blur(radius: 25)
 
-                // Sleeping Pixel
-                sleepingPixelView
+                        // Pixel
+                        PixelCharacterView(state: .idle, size: 120)
+                            .scaleEffect(0.9)
+                            .saturation(0.8)
 
-                // Message
-                messageView
+                        // Floating Z animations
+                        ZStack {
+                            FloatingZ(delay: 0, xOffset: 35, yOffset: -45)
+                            FloatingZ(delay: 1.2, xOffset: 50, yOffset: -60)
+                            FloatingZ(delay: 2.4, xOffset: 42, yOffset: -75)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
 
-                // Countdown
-                countdownView
+                    // RIGHT SIDE: Text Content
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Pixel is Recharging")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        Text("Great job today, Agent!\nPixel needs to rest....")
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.6))
+                            .multilineTextAlignment(.leading)
+                            .lineSpacing(4)
+
+                        Spacer().frame(height: 8)
+
+                        // Countdown Pill
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color(hex: "00D9FF"))
+
+                            Text("Energy refills in")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.5))
+
+                            Text(dailyProgress.timeUntilResetFormatted)
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .foregroundStyle(Color(hex: "00D9FF"))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(Color(hex: "1A1F35"))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 32)
 
                 Spacer()
 
-                // Hidden parent override (long press)
+                // Hidden parent override
                 parentOverrideButton
+                    .frame(height: 1)  // Minimized but touchable
+                    .opacity(0.01)
             }
-            .padding(.horizontal, 32)
         }
         .onAppear {
             animateScene()
         }
     }
 
-    // MARK: - Night Background
-
-    private var nightBackground: some View {
-        LinearGradient(
-            colors: [
-                Color(hex: "0D0F2B"),
-                Color(hex: "1A1F4E"),
-                Color(hex: "2D3561"),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
-    }
-
     // MARK: - Stars
 
     private var starsView: some View {
         GeometryReader { geo in
-            ForEach(0..<30, id: \.self) { i in
+            ForEach(0..<20, id: \.self) { i in
                 Circle()
                     .fill(.white)
-                    .frame(width: CGFloat.random(in: 2...4))
+                    .frame(width: CGFloat.random(in: 1...3))
                     .position(
                         x: CGFloat.random(in: 0...geo.size.width),
-                        y: CGFloat.random(in: 0...geo.size.height * 0.6)
+                        y: CGFloat.random(in: 0...geo.size.height)
                     )
-                    .opacity(starsOpacity * Double.random(in: 0.3...1.0))
+                    .opacity(Double.random(in: 0.2...0.6))
             }
         }
-    }
-
-    // MARK: - Moon
-
-    private var moonView: some View {
-        ZStack {
-            // Glow
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color(hex: "FFE066").opacity(0.3),
-                            Color.clear,
-                        ],
-                        center: .center,
-                        startRadius: 30,
-                        endRadius: 100
-                    )
-                )
-                .frame(width: 200, height: 200)
-
-            // Moon
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color(hex: "FFFACD"), Color(hex: "FFE066")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 80, height: 80)
-                .shadow(color: Color(hex: "FFE066").opacity(0.5), radius: 20)
-        }
-        .offset(y: moonOffset)
-    }
-
-    // MARK: - Sleeping Pixel
-
-    private var sleepingPixelView: some View {
-        ZStack {
-            // Pixel character (sleeping pose)
-            PixelCharacterView(state: .idle, size: 120)
-                .opacity(0.7)
-                .saturation(0.5)
-
-            // ZZZ bubbles
-            Text("💤")
-                .font(.system(size: 40))
-                .offset(x: 50, y: -40 + zzzOffset)
-                .opacity(0.8)
-        }
-    }
-
-    // MARK: - Message
-
-    private var messageView: some View {
-        VStack(spacing: 12) {
-            Text("Pixel is Recharging")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-
-            Text(
-                "Great job today, Agent! Pixel needs to rest.\nCome back tomorrow for more missions!"
-            )
-            .font(.system(size: 16, weight: .medium, design: .rounded))
-            .foregroundStyle(.white.opacity(0.7))
-            .multilineTextAlignment(.center)
-        }
-    }
-
-    // MARK: - Countdown
-
-    private var countdownView: some View {
-        VStack(spacing: 8) {
-            Text("Energy refills in")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.5))
-
-            Text(dailyProgress.timeUntilResetFormatted)
-                .font(.system(size: 32, weight: .bold, design: .monospaced))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "00D9FF"), Color(hex: "00FF94")],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-        }
-        .padding(20)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Parent Override
 
+    @State private var parentButtonActive: Bool = false
+
     private var parentOverrideButton: some View {
-        VStack(spacing: 8) {
-            if showParentButton {
-                Button(action: onParentOverride) {
-                    Text("Parent: Grant Bonus Mission")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial, in: Capsule())
-                }
-            } else {
-                Text("Hold for parent options")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.3))
+        Rectangle()
+            .fill(Color.clear)
+            .contentShape(Rectangle())
+            .onLongPressGesture(minimumDuration: 3.0) {
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+                onParentOverride()
             }
-        }
-        .padding(.bottom, 40)
-        .onLongPressGesture(minimumDuration: 2.0) {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            withAnimation {
-                showParentButton = true
-            }
-        }
     }
 
     // MARK: - Animation
 
     private func animateScene() {
-        // Stars fade in
-        withAnimation(.easeIn(duration: 1.0)) {
-            starsOpacity = 1.0
-        }
+        // No global scene animation needed for this cleaner look
+    }
+}
 
-        // Moon float
-        withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
-            moonOffset = -10
-        }
+// MARK: - Floating Z Component
 
-        // ZZZ float
-        withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-            zzzOffset = -15
-        }
+struct FloatingZ: View {
+    let delay: Double
+    let xOffset: CGFloat
+    let yOffset: CGFloat
+
+    @State private var opacity: Double = 0
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        Text("Z")
+            .font(.system(size: 24, weight: .bold, design: .rounded))
+            .foregroundStyle(Color(hex: "4A55A2"))  // Dark Blue Z
+            .opacity(opacity)
+            .offset(x: xOffset, y: yOffset - offset)
+            .onAppear {
+                withAnimation(
+                    .easeInOut(duration: 2.0)
+                        .repeatForever(autoreverses: false)
+                        .delay(delay)
+                ) {
+                    opacity = 0
+                    offset = 40
+                }
+
+                // Fade in entry
+                withAnimation(
+                    .easeIn(duration: 0.5)
+                        .repeatForever(autoreverses: false)
+                        .delay(delay)
+                ) {
+                    opacity = 1
+                }
+            }
     }
 }
 
@@ -232,6 +231,7 @@ struct PixelSleepingView: View {
 #Preview("Pixel Sleeping") {
     PixelSleepingView(
         dailyProgress: DailyProgress(),
-        onParentOverride: {}
+        onParentOverride: {},
+        onBack: {}
     )
 }

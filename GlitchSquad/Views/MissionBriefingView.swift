@@ -2,8 +2,8 @@
 //  MissionBriefingView.swift
 //  GlitchSquad
 //
-//  Shows the mission card and Pixel explaining the objective.
-//  High-energy screen to get kids moving!
+//  Shows the mission "Incoming Transmission" screen.
+//  Immersive holographic command center style.
 //
 
 import SwiftUI
@@ -18,290 +18,289 @@ struct MissionBriefingView: View {
     let onAccept: () -> Void
 
     // Animation states
-    @State private var cardScale: CGFloat = 0.8
-    @State private var cardOpacity: Double = 0
-    @State private var pixelOffset: CGFloat = 200
-    @State private var showButton: Bool = false
-    @State private var buttonPulse: Bool = false
+    @State private var showContent: Bool = false
+    @State private var scaleEffect: CGFloat = 0.5
+    @State private var rotation: Double = 0
+    @State private var warningOpacity: Double = 0
     @State private var isSpeaking: Bool = false
 
     var body: some View {
         ZStack {
             // Background
-            backgroundGradient
+            backgroundLayer
 
-            // Content layout
-            HStack(spacing: 0) {
-                // Left side: Pixel character
-                VStack {
-                    Spacer()
+            // Main Content
+            VStack(spacing: 0) {
+                // Top Header: Warning Tape
+                headerView
+                    .opacity(showContent ? 1 : 0)
+                    .offset(y: showContent ? 0 : -50)
 
-                    PixelCharacterView(state: mission.pixelStateBefore, size: 140)
-                        .offset(x: pixelOffset)
+                HStack(spacing: 0) {
+                    // Left: Holographic Target Visualization (Hero)
+                    ZStack {
+                        // Grid floor
+                        gridFloor
 
-                    if isSpeaking {
-                        // Speaking indicator
-                        HStack(spacing: 4) {
-                            ForEach(0..<3, id: \.self) { i in
-                                Circle()
-                                    .fill(Color(hex: "00D9FF"))
-                                    .frame(width: 8, height: 8)
-                                    .scaleEffect(isSpeaking ? 1.2 : 0.8)
-                                    .animation(
-                                        .easeInOut(duration: 0.4)
-                                            .repeatForever()
-                                            .delay(Double(i) * 0.15),
-                                        value: isSpeaking
-                                    )
+                        // Target Fruit Hologram
+                        Text(mission.target.emoji)
+                            .font(.system(size: 140))
+                            .shadow(color: themeColor.opacity(0.8), radius: 30, x: 0, y: 0)
+                            .shadow(color: .white.opacity(0.5), radius: 10, x: 0, y: 0)
+                            .scaleEffect(scaleEffect)
+                            .rotation3DEffect(.degrees(rotation), axis: (x: 0, y: 1, z: 0))
+                            .onAppear {
+                                withAnimation(
+                                    .linear(duration: 8).repeatForever(autoreverses: false)
+                                ) {
+                                    rotation = 360
+                                }
                             }
+
+                        // Scanning Rings
+                        ForEach(0..<2) { i in
+                            Circle()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [themeColor, .clear],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 2
+                                )
+                                .rotation3DEffect(.degrees(70), axis: (x: 1, y: 0, z: 0))
+                                .frame(width: 200 + CGFloat(i * 40), height: 200 + CGFloat(i * 40))
+                                .scaleEffect(showContent ? 1 : 0.5)
+                                .opacity(showContent ? 0.3 : 0)
+                                .animation(
+                                    .easeInOut(duration: 2).repeatForever(autoreverses: true).delay(
+                                        Double(i) * 0.5),
+                                    value: showContent
+                                )
                         }
-                        .padding(.top, 8)
-                        .offset(x: pixelOffset)
                     }
+                    .frame(maxWidth: .infinity)
 
-                    Spacer()
-                }
-                .frame(width: 180)
+                    // Right: Mission Stats Panel
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Objective
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("OBJECTIVE IDENTIFIED")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(themeColor)
+                                .tracking(2)
 
-                // Right side: Mission card
-                VStack(spacing: 24) {
-                    Spacer()
+                            Text(mission.title.uppercased())
+                                .font(.system(size: 28, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                                .shadow(color: themeColor.opacity(0.5), radius: 10)
+                        }
 
-                    // Mission card
-                    missionCard
-                        .scaleEffect(cardScale)
-                        .opacity(cardOpacity)
+                        Divider()
+                            .background(Color.white.opacity(0.2))
 
-                    // Accept button
-                    if showButton {
-                        acceptButton
-                            .transition(.scale.combined(with: .opacity))
+                        // Stats Grid
+                        HStack(spacing: 30) {
+                            statItem(icon: "clock.fill", label: "TIME LIMIT", value: "60s")
+                            statItem(icon: "bolt.fill", label: "REWARD", value: "+50 XP")
+                        }
+
+                        Spacer()
+
+                        // Accept Button (only shows after delay)
+                        if showContent {
+                            Button(action: {
+                                hapticFeedback()
+                                onAccept()
+                            }) {
+                                HStack {
+                                    Text("INITIATE MISSION")
+                                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                    Image(systemName: "chevron.right.2")
+                                }
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(themeColor)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(color: themeColor.opacity(0.6), radius: 15)
+                            }
+                            .transition(.push(from: .bottom))
+                        }
                     }
-
-                    Spacer()
+                    .frame(width: 300)
+                    .padding(32)
+                    .background(.ultraThinMaterial.opacity(0.3))
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(themeColor.opacity(0.5))
+                            .frame(width: 2)
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.trailing, 40)
+
+                Spacer()  // Space for bottom dialog
             }
         }
+        // Pixel Dialog Overlay
+        .pixelDialog(
+            text: VoiceScript.forMission(mission.target),
+            pixelState: mission.pixelStateBefore,
+            isVisible: $isSpeaking,
+            onComplete: nil
+        )
+        .ignoresSafeArea()
         .onAppear {
-            startBriefingSequence()
+            startSequence()
         }
     }
 
-    // MARK: - Background
+    // MARK: - Subviews
 
-    private var backgroundGradient: some View {
+    private var backgroundLayer: some View {
         ZStack {
-            // Dark base
-            Color(hex: "0D0D1A")
-                .ignoresSafeArea()
+            Color(hex: "050510").ignoresSafeArea()  // Deep space blue/black
 
-            // Broken base background image
-            Image("broken_base")
+            // Hexagon Grid background
+            Image("broken_base")  // Reuse existing asset, maybe blurred
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
-                .opacity(0.7)
+                .blur(radius: 10)
+                .opacity(0.4)
 
-            // Overlay gradient for depth
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.2),
-                    Color.clear,
-                    Color.black.opacity(0.4),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            // Vignette
+            RadialGradient(
+                colors: [.clear, .black.opacity(0.8)],
+                center: .center,
+                startRadius: 200,
+                endRadius: 600
             )
-            .ignoresSafeArea()
 
-            // Subtle grid pattern
-            GeometryReader { geo in
-                Path { path in
-                    let spacing: CGFloat = 40
-                    for x in stride(from: 0, to: geo.size.width, by: spacing) {
-                        path.move(to: CGPoint(x: x, y: 0))
-                        path.addLine(to: CGPoint(x: x, y: geo.size.height))
-                    }
-                    for y in stride(from: 0, to: geo.size.height, by: spacing) {
-                        path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: geo.size.width, y: y))
-                    }
-                }
-                .stroke(Color.white.opacity(0.03), lineWidth: 1)
-            }
-            .ignoresSafeArea()
-        }
-    }
-
-    // MARK: - Mission Card
-
-    private var missionCard: some View {
-        VStack(spacing: 20) {
-            // Mission title
-            HStack {
-                Image(systemName: "bolt.fill")
-                    .foregroundStyle(Color(hex: "FFE066"))
-
-                Text(mission.title.uppercased())
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .tracking(2)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-
-            // Fruit icon
-            Text(mission.target.emoji)
-                .font(.system(size: 80))
-                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-
-            // Mission prompt
-            VStack(spacing: 8) {
-                Text(mission.narrative)
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.8))
-
-                Text(mission.prompt)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 10)
-
-            // Timer indicator
-            HStack(spacing: 6) {
-                Image(systemName: "timer")
-                    .font(.system(size: 14))
-                Text("60 seconds")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-            }
-            .foregroundStyle(.white.opacity(0.6))
-            .padding(.top, 8)
-        }
-        .padding(32)
-        .background {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.5), .white.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                }
-        }
-        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
-    }
-
-    // MARK: - Accept Button
-
-    private var acceptButton: some View {
-        Button(action: {
-            // Haptic feedback
-            let generator = UIImpactFeedbackGenerator(style: .heavy)
-            generator.impactOccurred()
-
-            // Play sound
-            audioService.playSound(.missionAccept)
-
-            // Trigger callback
-            onAccept()
-        }) {
-            HStack(spacing: 12) {
-                Image(systemName: "rocket.fill")
-                    .font(.system(size: 20, weight: .bold))
-
-                Text("ACCEPT MISSION")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 40)
-            .padding(.vertical, 18)
-            .background {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: "00C853"),
-                                Color(hex: "00E676"),
-                                Color(hex: "69F0AE"),
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+            // Refresh scanline effect
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [.clear, themeColor.opacity(0.05), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .scaleEffect(buttonPulse ? 1.05 : 1.0)
-            }
-            .shadow(color: Color(hex: "00E676").opacity(0.5), radius: 15, x: 0, y: 8)
+                )
+                .frame(height: 100)
+                .offset(y: showContent ? 400 : -400)
+                .animation(
+                    .linear(duration: 3).repeatForever(autoreverses: false), value: showContent)
         }
+    }
+
+    private var headerView: some View {
+        HStack {
+            ForEach(0..<10) { _ in
+                Rectangle()
+                    .fill(Color(hex: "FFE066"))  // Yellow warning
+                    .frame(width: 20, height: 4)
+                    .rotationEffect(.degrees(45))
+            }
+            Text(" WARNING: ENERGY CRITICAL ")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color(hex: "FFE066"))
+                .padding(.horizontal)
+            ForEach(0..<10) { _ in
+                Rectangle()
+                    .fill(Color(hex: "FFE066"))
+                    .frame(width: 20, height: 4)
+                    .rotationEffect(.degrees(45))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.8))
+        .opacity(warningOpacity)
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                buttonPulse = true
+            withAnimation(.easeInOut(duration: 0.8).repeatForever()) {
+                warningOpacity = 1.0
             }
         }
     }
 
-    // MARK: - Briefing Sequence
+    private var gridFloor: some View {
+        // Perspective Grid
+        Path { path in
+            let width: CGFloat = 800
+            let height: CGFloat = 400
+            let step: CGFloat = 40
 
-    private func startBriefingSequence() {
-        // Phase 1: Show card
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-            cardScale = 1.0
-            cardOpacity = 1.0
-        }
-
-        // Phase 2: Pixel slides in
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.7)) {
-                pixelOffset = 0
+            // Horizontal lines
+            for i in 0...10 {
+                let y = CGFloat(i) * step
+                path.move(to: CGPoint(x: -width / 2, y: y))
+                path.addLine(to: CGPoint(x: width / 2, y: y))
+            }
+            // Vertical lines (fanned out)
+            for i in -10...10 {
+                let x = CGFloat(i) * step * 2
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: CGFloat(i) * step * 5, y: height))
             }
         }
+        .stroke(themeColor.opacity(0.3), lineWidth: 1)
+        .rotation3DEffect(.degrees(75), axis: (x: 1, y: 0, z: 0))
+        .offset(y: 100)
+        .frame(height: 200)
+    }
 
-        // Phase 3: Pixel speaks
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            isSpeaking = true
-
-            audioService.playMissionBriefing(mission) { [self] in
-                isSpeaking = false
-
-                // Show button after speaking
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                    showButton = true
-                }
+    private func statItem(icon: String, label: String, value: String) -> some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(themeColor)
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.gray)
             }
+            Text(value)
+                .font(.system(size: 20, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+        }
+    }
+
+    // MARK: - Logic
+
+    private var themeColor: Color {
+        switch mission.target {
+        case .apple: return Color(hex: "FF3B30")  // Red
+        case .banana: return Color(hex: "FFD60A")  // Yellow
+        case .orange: return Color(hex: "FF9500")  // Orange
+        }
+    }
+
+    private func startSequence() {
+        // 1. Initial Reveal
+        withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+            showContent = true
+            scaleEffect = 1.0
         }
 
-        // Fallback: Show button after 5 seconds if TTS doesn't work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            if !showButton {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                    showButton = true
-                }
+        // 2. Pixel Speaks
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isSpeaking = true  // Triggers Dialog overlay
+            audioService.playMissionBriefing(mission) {
+                isSpeaking = false  // Auto-close dialog after audio? Or keep it?
+                // Usually better to keep text visible until user taps, but for now we follow audio
             }
         }
+    }
+
+    private func hapticFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
     }
 }
 
 // MARK: - Preview
-
-#Preview("Mission Briefing - Apple") {
+#Preview("Briefing - Apple") {
     MissionBriefingView(
         mission: Mission.campaign[0],
         audioService: AudioService()
-    ) {
-        print("Mission accepted!")
-    }
-}
-
-#Preview("Mission Briefing - Banana") {
-    MissionBriefingView(
-        mission: Mission.campaign[1],
-        audioService: AudioService()
-    ) {
-        print("Mission accepted!")
-    }
+    ) { print("Start!") }
+    .previewInterfaceOrientation(.landscapeLeft)
 }

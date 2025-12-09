@@ -112,13 +112,13 @@ struct ScanningZoneView: View {
     @ViewBuilder
     private func progressRing(size: CGFloat) -> some View {
         ZStack {
-            // Background circle
-            Circle()
+            // Background track
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .stroke(Color.white.opacity(0.2), lineWidth: 8)
-                .frame(width: size * 0.6, height: size * 0.6)
+                .frame(width: size, height: size)
 
-            // Progress arc
-            Circle()
+            // Progress track
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .trim(from: 0, to: progress)
                 .stroke(
                     AngularGradient(
@@ -129,18 +129,18 @@ struct ScanningZoneView: View {
                     ),
                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
-                .frame(width: size * 0.6, height: size * 0.6)
+                .frame(width: size, height: size)
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.15), value: progress)
 
             // Glow effect
-            Circle()
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .trim(from: 0, to: progress)
                 .stroke(
                     Color(hex: "00FF94").opacity(0.5),
                     style: StrokeStyle(lineWidth: 16, lineCap: .round)
                 )
-                .frame(width: size * 0.6, height: size * 0.6)
+                .frame(width: size, height: size)
                 .rotationEffect(.degrees(-90))
                 .blur(radius: 10)
                 .animation(.easeOut(duration: 0.15), value: progress)

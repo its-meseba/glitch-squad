@@ -15,18 +15,13 @@ struct ContentView: View {
 
     @StateObject private var viewModel = GameViewModel()
     @StateObject private var audioService = AudioService()
-    @State private var showTutorial: Bool = false
 
     var body: some View {
         ZStack {
             switch viewModel.gameState {
             case .intro:
-                IntroView(audioService: audioService) {
+                OnboardingView {
                     viewModel.completeIntro()
-                    // Show tutorial if first time
-                    if !viewModel.hasSeenTutorial {
-                        showTutorial = true
-                    }
                 }
                 .transition(.opacity)
 
@@ -79,14 +74,14 @@ struct ContentView: View {
                 .transition(.opacity)
 
             case .success:
-                SuccessView(
+                MissionCompleteView(
                     mission: viewModel.currentMission,
                     glitchBits: viewModel.glitchBits,
                     audioService: audioService
                 ) {
                     viewModel.nextRound()
                 }
-                .transition(.scale.combined(with: .opacity))
+                .transition(.opacity)  // Smoother transition for full screen success
 
             case .gameOver:
                 GameCompleteView(
@@ -103,111 +98,6 @@ struct ContentView: View {
             await viewModel.onAppear()
             // Clear notification badge on app open
             ParentNotificationService.shared.clearBadge()
-        }
-        .fullScreenCover(isPresented: $showTutorial) {
-            SafeZoneTutorialView {
-                viewModel.completeTutorial()
-                showTutorial = false
-            }
-        }
-    }
-}
-
-// MARK: - Success View
-
-/// Celebration screen after finding a fruit
-struct SuccessView: View {
-
-    let mission: Mission
-    let glitchBits: Int
-    @ObservedObject var audioService: AudioService
-    let onContinue: () -> Void
-
-    @State private var showContent: Bool = false
-    @State private var pixelState: PixelState = .idle
-
-    var body: some View {
-        ZStack {
-            // Background
-            LinearGradient(
-                colors: [
-                    Color(hex: "1A1A2E"),
-                    Color(hex: "16213E"),
-                    Color(hex: "0F3460"),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            // Confetti
-            ConfettiView()
-
-            // Content
-            VStack(spacing: 30) {
-                // Pixel happy
-                PixelCharacterView(state: .happy, size: 120)
-                    .scaleEffect(showContent ? 1 : 0.5)
-                    .opacity(showContent ? 1 : 0)
-
-                // Success message
-                VStack(spacing: 12) {
-                    Text("MISSION COMPLETE!")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Text(mission.successLine)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                }
-                .opacity(showContent ? 1 : 0)
-
-                // Reward
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .foregroundStyle(Color(hex: "FFE066"))
-
-                    Text("+\(mission.rewardBits) Glitch Bits")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color(hex: "FFE066"))
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(.ultraThinMaterial, in: Capsule())
-                .scaleEffect(showContent ? 1 : 0.8)
-                .opacity(showContent ? 1 : 0)
-
-                // Continue button
-                Button(action: onContinue) {
-                    Text("Continue")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 16)
-                        .background {
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color(hex: "00D9FF"), Color(hex: "00FF94")],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                        }
-                        .shadow(color: Color(hex: "00D9FF").opacity(0.5), radius: 15)
-                }
-                .padding(.top, 20)
-                .opacity(showContent ? 1 : 0)
-            }
-            .padding(40)
-        }
-        .onAppear {
-            audioService.playSuccessSequence(successLine: mission.successLine)
-
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2)) {
-                showContent = true
-            }
         }
     }
 }

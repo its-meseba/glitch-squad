@@ -3,7 +3,7 @@
 //  GlitchSquad
 //
 //  The home screen showing Pixel's base/island that evolves
-//  as missions are completed. Entry point after intro.
+//  as missions are completed. Optimized for horizontal/landscape.
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ import SwiftUI
 // MARK: - Base View (Home Screen)
 
 /// The central hub showing the evolving base island
+/// Redesigned for iPad/iPhone horizontal (landscape) orientation
 struct BaseView: View {
 
     @ObservedObject var viewModel: GameViewModel
@@ -24,39 +25,141 @@ struct BaseView: View {
     @State private var glowPulse: Bool = false
     @State private var showParentDashboard: Bool = false
     @State private var showSleepingView: Bool = false
+    @State private var hasPlayedIntroVoice: Bool = false
+    @State private var showMissionPrompt: Bool = false
+    @State private var isSpeaking: Bool = false
+    @State private var currentSpeechText: String = ""
     @StateObject private var networkMonitor = NetworkMonitor()
 
     var body: some View {
-        ZStack {
-            // Background gradient
-            backgroundGradient
+        GeometryReader { geometry in
+            ZStack {
+                // Background gradient
+                backgroundGradient
 
-            // Floating particles
-            FloatingParticlesView()
+                // Floating particles
+                FloatingParticlesView()
 
-            // Main content
-            VStack(spacing: 0) {
-                // Top bar with title and collection button
-                topBar
-                    .opacity(showUI ? 1 : 0)
+                // Main horizontal layout
+                HStack(spacing: 0) {
+                    // Left side - Island and Pixel (65%)
+                    islandSection
+                        .frame(width: geometry.size.width * 0.65)
 
-                Spacer()
+                    // Right side - Control panel (35%)
+                    controlPanel
+                        .frame(width: geometry.size.width * 0.35)
+                        .opacity(showUI ? 1 : 0)
+                }
 
-                // Isometric island
-                islandView
-                    .scaleEffect(islandScale)
-                    .offset(y: islandOffset)
+                // Top bar overlay
+                VStack {
+                    gameNavBar
+                        .opacity(showUI ? 1 : 0)
+                    Spacer()
+                }
 
-                Spacer()
-
-                // Energy bar and mission button
-                bottomSection
-                    .opacity(showUI ? 1 : 0)
+                // Bottom Left Reset Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        resetButton
+                            .opacity(showUI ? 1 : 0)
+                        Spacer()
+                    }
+                }
             }
-            .padding()
         }
+        .ignoresSafeArea()
         .onAppear {
             animateIn()
+            playIntroVoiceIfNeeded()
+        }
+        .pixelDialog(
+            text: currentSpeechText,
+            pixelState: pixelStateForBase,
+            isVisible: $isSpeaking,
+            onComplete: nil,
+            onDismiss: {
+                audioService.stopSpeaking()
+            }
+        )
+        .fullScreenCover(isPresented: $showParentDashboard) {
+            ParentDashboardView(
+                isPresented: $showParentDashboard,
+                viewModel: viewModel
+            )
+        }
+        .fullScreenCover(isPresented: $showSleepingView) {
+            PixelSleepingView(
+                dailyProgress: viewModel.dailyProgress,
+                onParentOverride: {
+                    var progress = viewModel.dailyProgress
+                    progress.grantBonusMission()
+                    viewModel.updateDailyProgress(progress)
+                    showSleepingView = false
+                }
+            )
+        }
+        .overlay {
+            if showResetting {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(1.5)
+                        Text("SYSTEM RESTORE INITIATED...")
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
+        }
+    }
+
+    @State private var showResetting: Bool = false
+
+    // MARK: - Voice Introduction
+
+    private func playIntroVoiceIfNeeded() {
+        guard !hasPlayedIntroVoice else { return }
+        hasPlayedIntroVoice = true
+
+        // Delay slightly to let UI settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [self] in
+            // Determine text based on progress
+            let itemsFound = viewModel.progress.collectedItems.count
+            switch itemsFound {
+            case 0: currentSpeechText = VoiceScript.introGreeting
+            case 1:
+                currentSpeechText =
+                    "Wonderful! I am getting better and you're saving my world! Now you need to find a BANANA!"
+            case 2:
+                currentSpeechText =
+                    "Spectacular! Systems are at 70 percent! Just one more to go. Find me an ORANGE!"
+            case 3: currentSpeechText = "Thank you for today! See you later for our next mission!"
+            default: currentSpeechText = "Thank you for today! See you later for our next mission!"
+            }
+
+            isSpeaking = true
+
+            // Play voice
+            audioService.playProgressUpdate(itemsFound: itemsFound) {
+                // Hide speech bubble after voice completes
+                DispatchQueue.main.async {
+                    isSpeaking = false
+
+                    // Show mission prompt if missions remain
+                    if viewModel.canStartMission {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            showMissionPrompt = true
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -72,23 +175,79 @@ struct BaseView: View {
             startPoint: .top,
             endPoint: .bottom
         )
-        .ignoresSafeArea()
     }
 
-    // MARK: - Top Bar
+    // MARK: - Game Navigation Bar
 
-    private var topBar: some View {
-        HStack {
-            // Parent dashboard button (long press)
+    private var gameNavBar: some View {
+        HStack(spacing: 16) {
+            // Left section - Energy & Daily Activity
+            energyAndActivitySection
+
+            Spacer()
+
+            // Right section - Status badges
+            HStack(spacing: 10) {
+                // Offline indicator
+                if !networkMonitor.isConnected {
+                    StatusBadge(
+                        icon: "lock.shield.fill",
+                        text: "Private",
+                        color: Color(hex: "00FF94")
+                    )
+                }
+
+                // Glitch Bits counter
+                StatusBadge(
+                    icon: "sparkles",
+                    text: "\(viewModel.glitchBits)",
+                    color: Color(hex: "FFE066")
+                )
+
+                // Collection button (Top Right with Text)
+                Button(action: onOpenCollection) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .font(.system(size: 14))
+
+                        Text("Collection")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+
+                        Text(
+                            "\(viewModel.progress.collectedItems.count)/\(CollectableItem.allItems.count)"
+                        )
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .opacity(0.8)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(hex: "00D9FF").opacity(0.8), in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                    )
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+    }
+
+    // MARK: - Energy & Activity Section
+
+    private var energyAndActivitySection: some View {
+        HStack(spacing: 16) {
+            // Title with long press for parent dashboard
             Button(action: {}) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("GLITCH SQUAD")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
 
-                    Text("Eco Dome: \(viewModel.progress.baseStage.title)")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.6))
+                    Text(viewModel.progress.baseStage.title)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.5))
                 }
             }
             .onLongPressGesture(minimumDuration: 1.5) {
@@ -97,88 +256,93 @@ struct BaseView: View {
                 showParentDashboard = true
             }
 
-            Spacer()
+            // Divider
+            Rectangle()
+                .fill(.white.opacity(0.2))
+                .frame(width: 1, height: 32)
 
-            // Offline indicator (prominent privacy badge)
-            if !networkMonitor.isConnected {
+            // Energy display
+            HStack(spacing: 12) {
+                // Energy icon and bars
                 HStack(spacing: 6) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 12))
-                    Text("Offline")
-                }
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color(hex: "00FF94"))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: Capsule())
-            }
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(hex: "FFE066"))
 
-            // Energy meter (daily missions remaining)
-            HStack(spacing: 4) {
-                ForEach(0..<3, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(
-                            i < viewModel.dailyProgress.missionsRemaining
-                                ? Color(hex: "00FF94")
-                                : Color.white.opacity(0.2)
-                        )
-                        .frame(width: 8, height: 16)
+                    HStack(spacing: 3) {
+                        ForEach(0..<3, id: \.self) { i in
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(
+                                    i < viewModel.dailyProgress.missionsRemaining
+                                        ? LinearGradient(
+                                            colors: [Color(hex: "00FF94"), Color(hex: "00D9FF")],
+                                            startPoint: .bottom,
+                                            endPoint: .top
+                                        )
+                                        : LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(0.15), Color.white.opacity(0.1),
+                                            ],
+                                            startPoint: .bottom,
+                                            endPoint: .top
+                                        )
+                                )
+                                .frame(width: 8, height: 18)
+                        }
+                    }
+                }
+
+                // Daily stats
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Today")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.5))
+
+                    Text("\(viewModel.dailyProgress.missionsToday) missions")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.8))
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-
-            // Collection button
-            Button(action: onOpenCollection) {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.grid.2x2")
-                    Text(
-                        "\(viewModel.progress.collectedItems.count)/\(CollectableItem.allItems.count)"
-                    )
-                }
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: Capsule())
-            }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
     }
 
-    // MARK: - Island View
+    // MARK: - Island Section (Left 65%)
 
-    private var islandView: some View {
+    private var islandSection: some View {
         ZStack {
             // Glow effect
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            stageGlowColor.opacity(0.3),
+                            stageGlowColor.opacity(0.4),
                             Color.clear,
                         ],
                         center: .center,
-                        startRadius: 50,
-                        endRadius: 200
+                        startRadius: 30,
+                        endRadius: 180
                     )
                 )
-                .frame(width: 400, height: 400)
-                .scaleEffect(glowPulse ? 1.1 : 1.0)
-                .blur(radius: 30)
+                .frame(width: 360, height: 360)
+                .scaleEffect(glowPulse ? 1.15 : 1.0)
+                .blur(radius: 40)
 
             // Island image
             Image(viewModel.progress.baseStage.imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 350)
-                .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                .frame(maxWidth: 320, maxHeight: 280)
+                .shadow(color: .black.opacity(0.4), radius: 30, x: 0, y: 15)
+                .scaleEffect(islandScale)
+                .offset(y: islandOffset)
 
-            // Pixel on the island
-            PixelCharacterView(state: pixelStateForBase, size: 80)
-                .offset(y: -20)
+            // Pixel character (no speech bubble - using dialog overlay instead)
+            PixelCharacterView(state: pixelStateForBase, size: 70)
+                .offset(y: islandOffset - 30)
+                .scaleEffect(islandScale)
         }
     }
 
@@ -200,153 +364,188 @@ struct BaseView: View {
         }
     }
 
-    // MARK: - Bottom Section
+    // MARK: - Control Panel (Right 35%)
 
-    private var bottomSection: some View {
-        VStack(spacing: 20) {
-            // Energy bar
-            energyBar
+    private var controlPanel: some View {
+        VStack(spacing: 16) {
+            Spacer()
 
-            // Mission button, energy depleted, or complete message
+            // Mission or status button
             if viewModel.progress.currentMissionIndex >= Mission.campaign.count {
-                allCompleteMessage
+                allCompleteCard
             } else if !viewModel.dailyProgress.canPlay {
-                energyDepletedButton
+                energyDepletedCard
             } else {
-                missionButton
+                missionCard
+                    .padding(.vertical, 20)  // Extra padding to make it visually bigger
             }
+
+            // Collection button removed from bottom
+
+            Spacer()
+            Spacer()
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 30)
-        .fullScreenCover(isPresented: $showParentDashboard) {
-            ParentDashboardView(
-                isPresented: $showParentDashboard,
-                viewModel: viewModel
-            )
-        }
-        .fullScreenCover(isPresented: $showSleepingView) {
-            PixelSleepingView(
-                dailyProgress: viewModel.dailyProgress,
-                onParentOverride: {
-                    var progress = viewModel.dailyProgress
-                    progress.grantBonusMission()
-                    viewModel.updateDailyProgress(progress)
-                    showSleepingView = false
-                }
-            )
-        }
+        .padding(.vertical, 24)
     }
 
-    private var energyBar: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "bolt.fill")
-                    .foregroundStyle(Color(hex: "FFE066"))
-                Text("Energy Level")
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
-                Spacer()
-                Text("\(Int(viewModel.progress.batteryPercentage))%")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-            }
+    private var resetButton: some View {
+        Button(action: {
+            withAnimation { showResetting = true }
 
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    // Background
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.ultraThinMaterial)
-
-                    // Fill
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(hex: "00D9FF"), Color(hex: "00FF94")],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: geo.size.width * viewModel.progress.batteryPercentage / 100)
-                }
+            // Simulate system restore delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                viewModel.fullDebugReset()
+                // Resetting state will be cleared when View reloads/state changes
+                showResetting = false
             }
-            .frame(height: 12)
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise.circle.fill")
+                Text("Reset the user data")
+            }
+            .font(.system(size: 14, weight: .bold, design: .rounded))
+            .foregroundStyle(.white.opacity(0.4))
+            .padding(12)
+            .background(.ultraThinMaterial.opacity(0.5), in: Capsule())
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.leading, 32)
+        .padding(.bottom, 24)
     }
 
-    private var missionButton: some View {
+    // MARK: - Mission Card
+
+    private var missionCard: some View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
             onStartMission()
         }) {
-            HStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 20))
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(hex: "FF6B6B"))
 
-                VStack(alignment: .leading, spacing: 2) {
                     Text("MISSION AVAILABLE")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text(viewModel.currentMission.title)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .opacity(0.8)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.9))
+
+                    Spacer()
+
+                    // Pulsing indicator
+                    Circle()
+                        .fill(Color(hex: "FF6B6B"))
+                        .frame(width: 10, height: 10)
+                        .scaleEffect(showMissionPrompt ? 1.3 : 1.0)
+                        .animation(
+                            .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                            value: showMissionPrompt
+                        )
                 }
 
-                Spacer()
+                Spacer().frame(height: 4)
 
-                Image(systemName: "chevron.right")
+                // Mission title (Larger)
+                Text(viewModel.currentMission.title)
+                    .font(.system(size: 24, weight: .black, design: .rounded))  // Bigger font
+                    .foregroundStyle(.white)
+
+                // Target fruit with background
+                HStack(spacing: 12) {
+                    Text(viewModel.currentTarget.emoji)
+                        .font(.system(size: 32))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("TARGET")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.6))
+
+                        Text(viewModel.currentTarget.displayName)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.white)
+                        .shadow(radius: 5)
+                }
+                .padding(12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
             }
-            .foregroundStyle(.white)
-            .padding(20)
+            .padding(24)  // Increased padding
+            .frame(maxWidth: .infinity)  // Fill width
             .background(
                 LinearGradient(
-                    colors: [Color(hex: "FF6B6B"), Color(hex: "F472B6")],
-                    startPoint: .leading,
-                    endPoint: .trailing
+                    colors: [Color(hex: "FF6B6B").opacity(0.9), Color(hex: "F472B6").opacity(0.7)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 ),
-                in: RoundedRectangle(cornerRadius: 20)
+                in: RoundedRectangle(cornerRadius: 24)
             )
-            .shadow(color: Color(hex: "FF6B6B").opacity(0.4), radius: 15, x: 0, y: 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+            )
         }
+        .shadow(color: Color(hex: "FF6B6B").opacity(0.4), radius: 20, x: 0, y: 10)
     }
 
-    private var energyDepletedButton: some View {
+    // MARK: - Energy Depleted Card
+
+    private var energyDepletedCard: some View {
         Button(action: {
             showSleepingView = true
         }) {
-            HStack(spacing: 12) {
-                Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color(hex: "FFE066"))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(hex: "FFE066"))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("PIXEL IS RESTING")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                    Text("Energy refills in \(viewModel.dailyProgress.timeUntilResetFormatted)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .opacity(0.8)
+                    Text("RESTING")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.7))
+
+                    Spacer()
                 }
 
-                Spacer()
+                Text("Pixel is Sleeping")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
 
-                Image(systemName: "chevron.right")
+                HStack {
+                    Text("Energy refills in")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.7))
+
+                    Text(viewModel.dailyProgress.timeUntilResetFormatted)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(hex: "00D9FF"))
+                }
             }
-            .foregroundStyle(.white)
             .padding(20)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         }
     }
 
-    private var allCompleteMessage: some View {
+    // MARK: - All Complete Card
+
+    private var allCompleteCard: some View {
         VStack(spacing: 12) {
-            Text("🎉 All Missions Complete!")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+            Text("🎉")
+                .font(.system(size: 40))
+
+            Text("All Missions Complete!")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
 
-            Text("Pixel is fully restored!")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+            Text("Pixel is fully restored")
+                .font(.system(size: 13, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.7))
         }
         .padding(20)
@@ -372,6 +571,29 @@ struct BaseView: View {
         withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true).delay(1.0)) {
             glowPulse = true
         }
+    }
+}
+
+// MARK: - Status Badge Component
+
+struct StatusBadge: View {
+    let icon: String
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(color)
+
+            Text(text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: Capsule())
     }
 }
 
@@ -405,16 +627,15 @@ struct FloatingParticlesView: View {
                 generateParticles(in: geo.size)
             }
         }
-        .ignoresSafeArea()
     }
 
     private func generateParticles(in size: CGSize) {
-        particles = (0..<20).map { _ in
+        particles = (0..<25).map { _ in
             Particle(
                 x: CGFloat.random(in: 0...size.width),
                 y: CGFloat.random(in: 0...size.height),
-                size: CGFloat.random(in: 2...6),
-                opacity: Double.random(in: 0.1...0.3),
+                size: CGFloat.random(in: 1...4),
+                opacity: Double.random(in: 0.1...0.25),
                 speed: Double.random(in: 1...3)
             )
         }
@@ -423,11 +644,12 @@ struct FloatingParticlesView: View {
 
 // MARK: - Preview
 
-#Preview("Base View - Broken") {
+#Preview("Base View - Horizontal") {
     BaseView(
         viewModel: GameViewModel(),
         audioService: AudioService(),
         onStartMission: {},
         onOpenCollection: {}
     )
+    .previewInterfaceOrientation(.landscapeLeft)
 }

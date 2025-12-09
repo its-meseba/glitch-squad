@@ -47,6 +47,7 @@ struct Mission: Identifiable, Equatable {
     let narrative: String
     let prompt: String
     let successLine: String
+    let successVoice: VoiceLine
     let rewardBits: Int
     let pixelStateBefore: PixelState
     let pixelStateAfter: PixelState
@@ -57,8 +58,9 @@ struct Mission: Identifiable, Equatable {
             target: .apple,
             title: "The Power Source",
             narrative: "My battery is almost empty!",
-            prompt: "I need RED ENERGY to power up. Find me an APPLE!",
+            prompt: "I need RED ENERGY to power up. Find me an APPLE! Go go go!",
             successLine: "YES! Target acquired! Systems charging...",
+            successVoice: .success1,
             rewardBits: 50,
             pixelStateBefore: .sad,
             pixelStateAfter: .idle
@@ -68,7 +70,8 @@ struct Mission: Identifiable, Equatable {
             title: "The Stabilizer",
             narrative: "Whoa! I'm all wobbly!",
             prompt: "I need a YELLOW STABILIZER to fix my balance. Find a BANANA!",
-            successLine: "Perfect! My circuits are stabilizing!",
+            successLine: "Perfect! My circuits are tingling!",
+            successVoice: .success2,
             rewardBits: 75,
             pixelStateBefore: .glitching,
             pixelStateAfter: .idle
@@ -78,7 +81,8 @@ struct Mission: Identifiable, Equatable {
             title: "The Shield",
             narrative: "Warning! Virus detected!",
             prompt: "I need CITRUS SHIELDS to fight it off. Quick, find an ORANGE!",
-            successLine: "Amazing work, Agent! Virus eliminated!",
+            successLine: "Amazing work, Agent! Power levels rising!",
+            successVoice: .success3,
             rewardBits: 100,
             pixelStateBefore: .glitching,
             pixelStateAfter: .happy

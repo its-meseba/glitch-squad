@@ -188,7 +188,7 @@ struct DetectionBoxOverlay: View {
         // Since we work in normalized coords, imageWidth=1, imageHeight=cameraAspectRatio (relative to width? No.)
         // Let's us View dimensions.
         // View Height / View Width
-        let viewAspectRatio = size.width / size.height
+        _ = size.width / size.height  // View aspect ratio (unused but kept for documentation)
 
         // Since View (e.g. 0.46) is skinnier than Camera (0.56),
         // AspectFill scales by HEIGHT.

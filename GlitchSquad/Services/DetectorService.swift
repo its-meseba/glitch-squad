@@ -14,6 +14,7 @@ import Vision
 // MARK: - Detector Protocol
 
 /// Protocol for object detection to allow mock implementations
+@preconcurrency
 protocol ObjectDetecting: Sendable {
     func detect(pixelBuffer: CVPixelBuffer) async -> [DetectionResult]
 }
@@ -33,21 +34,22 @@ actor DetectorService: ObjectDetecting {
     private(set) var isMockMode: Bool = false
 
     /// Minimum confidence threshold for detections
-    private let confidenceThreshold: Float = 0.7
+    private let confidenceThreshold: Float = 0.85
 
     /// Labels we care about (fruits only)
     private let targetLabels = Set(["apple", "banana", "orange"])
 
+    // model name to load
+    private let modelName = "yolo11l"
     // MARK: - Initialization
 
     init() {
-        setupModel()
+        // Use Task to call actor-isolated method from nonisolated init
+        Task { await self.setupModel() }
     }
 
     /// Set up the Core ML model for Vision
     private func setupModel() {
-        // Model name to load
-        let modelName = "yolov11m"
         // Debug: List all bundle resources
         print("🔍 Searching for model in bundle...")
         if let bundlePath = Bundle.main.resourcePath {
@@ -75,7 +77,7 @@ actor DetectorService: ObjectDetecting {
             return
         }
 
-        print("⚠️ yolov8n model not found in bundle - using mock detector")
+        print("⚠️ \(modelName) model not found in bundle - using mock detector")
         print("📋 Available resources:")
         if let urls = Bundle.main.urls(forResourcesWithExtension: nil, subdirectory: nil) {
             for url in urls.prefix(20) {
@@ -105,7 +107,7 @@ actor DetectorService: ObjectDetecting {
             // Configure request for best accuracy
             detectionRequest?.imageCropAndScaleOption = .scaleFill
 
-            print("✅ YOLOv8 model ready for detection!")
+            print("✅ \(modelName) model ready for detection!")
 
         } catch {
             print("❌ Failed to load model: \(error)")

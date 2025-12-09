@@ -23,14 +23,17 @@ enum SoundEffect: String {
 
 /// Available voice lines for Pixel
 enum VoiceLine: String {
-    case introGreeting = "Voice/intro_greeting"
-    case missionApple = "Voice/mission_apple"
-    case missionBanana = "Voice/mission_banana"
-    case missionOrange = "Voice/mission_orange"
-    case success1 = "Voice/success_1"
-    case success2 = "Voice/success_2"
-    case success3 = "Voice/success_3"
-    case gameComplete = "Voice/game_complete"
+    case introGreeting = "intro_greeting"
+    case missionApple = "mission_apple"
+    case missionBanana = "mission_banana"
+    case missionOrange = "mission_orange"
+    case success1 = "success_1"
+    case success2 = "success_2"
+    case success3 = "success_3"
+    case progress1Found = "progress_1_found"
+    case progress2Found = "progress_2_found"
+    case dayComplete = "day_complete"
+    case gameComplete = "game_complete"
 
     /// Get voice line for a specific mission target
     static func forTarget(_ target: TargetFruit) -> VoiceLine {
@@ -233,6 +236,19 @@ final class AudioService: ObservableObject {
         }
     }
 
+    /// Play update based on items found
+    func playProgressUpdate(itemsFound: Int, completion: (() -> Void)? = nil) {
+        let line: VoiceLine
+        switch itemsFound {
+        case 0: line = .introGreeting
+        case 1: line = .progress1Found
+        case 2: line = .progress2Found
+        case 3: line = .dayComplete  // or .gameComplete depending on logic
+        default: line = .dayComplete
+        }
+        playVoiceLine(line, completion: completion)  // Assuming playVoiceLine is the intended method
+    }
+
     /// Play Pixel's intro greeting
     func playIntroGreeting(completion: @escaping () -> Void) {
         playVoiceLine(
@@ -257,11 +273,11 @@ final class AudioService: ObservableObject {
     }
 
     /// Play success sequence with voice
-    func playSuccessSequence(successLine: String) {
+    func playSuccessSequence(successVoice: VoiceLine, fallbackText: String) {
         playSound(.successPowerup)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.playVoiceLine(.randomSuccess, fallbackText: successLine, completion: nil)
+            self?.playVoiceLine(successVoice, fallbackText: fallbackText, completion: nil)
         }
     }
 

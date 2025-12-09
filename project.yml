@@ -25,12 +25,6 @@ targets:
         excludes:
           - "**/*.md"
           - "Info.plist"
-          - "Resources/*.mlpackage"
-    
-    resources:
-      - path: GlitchSquad/Resources/yolo11l.mlpackage
-      - path: GlitchSquad/Resources/yolo11m.mlpackage
-      - path: GlitchSquad/Resources/yolo11s.mlpackage
     
     settings:
       base:

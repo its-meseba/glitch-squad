@@ -40,19 +40,17 @@ final class CameraService: NSObject, ObservableObject {
 
     // MARK: - Frame Streaming
 
-    /// Continuation for the async stream of pixel buffers
-    private var frameContinuation: AsyncStream<CVPixelBuffer>.Continuation?
+    /// Thread-safe manager for the async stream continuation
+    private let streamManager = StreamManager()
 
     /// Async stream of camera frames for Vision processing
     var frameStream: AsyncStream<CVPixelBuffer> {
         AsyncStream { continuation in
-            self.frameContinuation = continuation
+            streamManager.setContinuation(continuation)
 
             // Clean up when stream is cancelled
-            continuation.onTermination = { @Sendable _ in
-                Task { @MainActor in
-                    self.frameContinuation = nil
-                }
+            continuation.onTermination = { [weak streamManager] _ in
+                streamManager?.setContinuation(nil)
             }
         }
     }
@@ -146,9 +144,12 @@ final class CameraService: NSObject, ObservableObject {
     func startSession() {
         guard !captureSession.isRunning else { return }
 
+        // Capture session reference before async context
+        let session = captureSession
+
         // Run on background thread to not block UI
         videoQueue.async { [weak self] in
-            self?.captureSession.startRunning()
+            session.startRunning()
 
             Task { @MainActor in
                 self?.isRunning = true
@@ -160,13 +161,37 @@ final class CameraService: NSObject, ObservableObject {
     func stopSession() {
         guard captureSession.isRunning else { return }
 
+        // Capture session reference before async context
+        let session = captureSession
+
         videoQueue.async { [weak self] in
-            self?.captureSession.stopRunning()
+            session.stopRunning()
 
             Task { @MainActor in
                 self?.isRunning = false
             }
         }
+    }
+}
+
+// MARK: - Helper Classes
+
+/// Thread-safe container for the stream continuation
+/// Allows access from background threads without MainActor isolation
+private class StreamManager: @unchecked Sendable {
+    private var continuation: AsyncStream<CVPixelBuffer>.Continuation?
+    private let lock = NSLock()
+
+    func setContinuation(_ continuation: AsyncStream<CVPixelBuffer>.Continuation?) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.continuation = continuation
+    }
+
+    func yield(_ buffer: CVPixelBuffer) {
+        lock.lock()
+        defer { lock.unlock() }
+        continuation?.yield(buffer)
     }
 }
 
@@ -184,10 +209,9 @@ extension CameraService: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
 
-        // Send to async stream for Vision processing
-        Task { @MainActor in
-            frameContinuation?.yield(pixelBuffer)
-        }
+        // Use the thread-safe manager to yield directly from this background thread
+        // No MainActor isolation needed
+        streamManager.yield(pixelBuffer)
     }
 }
 

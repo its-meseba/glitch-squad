@@ -216,7 +216,7 @@ final class GameViewModel: ObservableObject {
 
         // Request notification permission
         Task {
-            await ParentNotificationService.shared.requestAuthorization()
+            _ = await ParentNotificationService.shared.requestAuthorization()
             await ParentNotificationService.shared.checkAuthorizationStatus()
 
             // Schedule daily reminder if authorized
@@ -330,7 +330,7 @@ final class GameViewModel: ObservableObject {
 
         // Add collected item
         let collectedItem = CollectedItem(
-            itemType: currentTarget.rawValue.lowercased(),
+            itemType: currentTarget.label.lowercased(),
             missionTitle: currentMission.title
         )
         progress.addCollectedItem(collectedItem)
@@ -394,6 +394,32 @@ final class GameViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Debug
+
+    /// Full reset for development (clears onboarding flags and all persisted data)
+    func fullDebugReset() {
+        // Clear all @AppStorage persistence
+        hasSeenIntro = false
+        hasSeenTutorial = false
+
+        // Clear UserDefaults keys explicitly
+        UserDefaults.standard.removeObject(forKey: "dailyProgress")
+        UserDefaults.standard.removeObject(forKey: "activityLog")
+        UserDefaults.standard.synchronize()
+
+        // Reset in-memory progress objects
+        progress = GameProgress()
+        dailyProgress = DailyProgress()
+
+        // Reset game state
+        resetGame()
+
+        // Force state to intro
+        withAnimation {
+            gameState = .intro
+        }
+    }
+
     // MARK: - Frame Processing
 
     /// Start processing camera frames for object detection
@@ -419,6 +445,9 @@ final class GameViewModel: ObservableObject {
         processingTask = nil
     }
 
+    /// Consecutive frames where object was detected in zone (debounce filter)
+    private var consecutiveDetections: Int = 0
+
     /// Process detection results
     private func processDetections(_ detections: [DetectionResult]) {
         // Find if current target is detected
@@ -433,24 +462,36 @@ final class GameViewModel: ObservableObject {
             isObjectInZone = isInZone
 
             if isInZone {
-                // Target found in zone - trigger lock-on
-                objectDetectedThisFrame = true
+                // Target found in zone - increment stability counter
+                consecutiveDetections += 1
 
-                // Transition to lock-on if not already
-                if gameState == .hunt {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        gameState = .lockOn
+                // Only consider it a "valid" detection if we have 6 clean frames (~0.3s)
+                // This filters out unrelated objects that flash as "Apple" for 1-2 frames
+                if consecutiveDetections > 6 {
+                    objectDetectedThisFrame = true
+
+                    // Transition to lock-on if not already
+                    if gameState == .hunt {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            gameState = .lockOn
+                        }
+
+                        // Haptic feedback when lock-on starts
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
                     }
-
-                    // Haptic feedback when lock-on starts
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
+                } else {
+                    // Not stable enough yet
+                    objectDetectedThisFrame = false
                 }
             } else {
-                // Detected but not in zone - don't count
+                // Detected but not in zone - reset counter
+                consecutiveDetections = 0
                 objectDetectedThisFrame = false
             }
         } else {
+            // No target detected - reset counter
+            consecutiveDetections = 0
             objectDetectedThisFrame = false
             currentDetection = nil
             isObjectInZone = false
