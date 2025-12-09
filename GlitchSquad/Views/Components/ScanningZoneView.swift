@@ -162,24 +162,53 @@ struct ScanningZoneView: View {
 
     @ViewBuilder
     private func scanningLine(size: CGFloat) -> some View {
-        Rectangle()
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color.clear,
-                        Color(hex: "00D9FF").opacity(0.6),
-                        Color.clear,
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
+        let lineHeight: CGFloat = (size - 40) / 2  // Half the zone height for travel range
+
+        ZStack {
+            // Main scan line with gradient
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            Color(hex: "00D9FF").opacity(0.8),
+                            Color(hex: "00FF94").opacity(0.9),
+                            Color(hex: "00D9FF").opacity(0.8),
+                            Color.clear,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
                 )
-            )
-            .frame(width: size - 20, height: 2)
-            .offset(y: scanLineOffset)
-            .mask {
-                RoundedRectangle(cornerRadius: 25, style: .continuous)
-                    .frame(width: size - 10, height: size - 10)
-            }
+                .frame(width: size - 30, height: 3)
+
+            // Glow effect behind the line
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            Color(hex: "00D9FF").opacity(0.4),
+                            Color(hex: "00FF94").opacity(0.5),
+                            Color(hex: "00D9FF").opacity(0.4),
+                            Color.clear,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: size - 30, height: 12)
+                .blur(radius: 6)
+        }
+        .offset(y: scanLineOffset)
+        .mask {
+            RoundedRectangle(cornerRadius: 25, style: .continuous)
+                .frame(width: size - 10, height: size - 10)
+        }
+        .onAppear {
+            // Start continuous up-down animation
+            animateScanLine(range: lineHeight)
+        }
     }
 
     // MARK: - Corner Accents
@@ -208,10 +237,19 @@ struct ScanningZoneView: View {
     private func startAnimations() {
         // Start pulsing
         isPulsing = true
+    }
 
-        // Scanning line animation
-        withAnimation(.linear(duration: 2).repeatForever(autoreverses: true)) {
-            scanLineOffset = 100
+    /// Animate the scan line smoothly up and down
+    private func animateScanLine(range: CGFloat) {
+        // Start from top
+        scanLineOffset = -range
+
+        // Animate down
+        withAnimation(
+            .easeInOut(duration: 1.8)
+                .repeatForever(autoreverses: true)
+        ) {
+            scanLineOffset = range
         }
     }
 }

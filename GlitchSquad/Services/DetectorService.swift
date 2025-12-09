@@ -16,7 +16,14 @@ import Vision
 /// Protocol for object detection to allow mock implementations
 @preconcurrency
 protocol ObjectDetecting: Sendable {
-    func detect(pixelBuffer: CVPixelBuffer) async -> [DetectionResult]
+    /// Detect objects in the pixel buffer
+    /// - Parameters:
+    ///   - pixelBuffer: Camera frame to analyze
+    ///   - targetFruit: The specific fruit label to look for (e.g., "apple")
+    ///   - scanningZone: Normalized rect (0-1) defining the detection zone
+    /// - Returns: Array of detected objects matching the target
+    func detect(pixelBuffer: CVPixelBuffer, targetFruit: String, scanningZone: CGRect) async
+        -> [DetectionResult]
 }
 
 // MARK: - Detector Service
@@ -33,11 +40,16 @@ actor DetectorService: ObjectDetecting {
     /// Whether using mock detector (model not found)
     private(set) var isMockMode: Bool = false
 
-    /// Minimum confidence threshold for detections
-    private let confidenceThreshold: Float = 0.85
+    /// Minimum confidence threshold for detections (higher to reduce false positives)
+    private let confidenceThreshold: Float = 0.95
 
-    /// Labels we care about (fruits only)
-    private let targetLabels = Set(["apple", "banana", "orange"])
+    /// Minimum confidence margin between top label and second label
+    /// Ensures we have a "clear winner" and not ambiguous classification
+    private let confidenceMargin: Float = 0.25
+
+    /// Maximum bounding box area (0-1) - reject if detection covers too much of frame
+    /// Full-frame classifications often have box ~1.0, real detections are smaller
+    private let maxBoundingBoxArea: CGFloat = 0.7
 
     // model name to load
     private let modelName = "yolo11l"
@@ -118,21 +130,29 @@ actor DetectorService: ObjectDetecting {
     // MARK: - Detection
 
     /// Perform object detection on a camera frame
-    /// - Parameter pixelBuffer: Camera frame to analyze
-    /// - Returns: Array of detected objects (filtered to target fruits)
-    func detect(pixelBuffer: CVPixelBuffer) async -> [DetectionResult] {
+    /// - Parameters:
+    ///   - pixelBuffer: Camera frame to analyze
+    ///   - targetFruit: The specific fruit to detect (e.g., "apple")
+    ///   - scanningZone: Normalized rect defining where to look
+    /// - Returns: Array of detected objects matching the target fruit inside the zone
+    func detect(pixelBuffer: CVPixelBuffer, targetFruit: String, scanningZone: CGRect) async
+        -> [DetectionResult]
+    {
         if isMockMode {
-            return mockDetection()
+            return mockDetection(targetFruit: targetFruit)
         }
 
-        return await performVisionDetection(pixelBuffer: pixelBuffer)
+        return await performVisionDetection(
+            pixelBuffer: pixelBuffer, targetFruit: targetFruit, scanningZone: scanningZone)
     }
 
     /// Counter for logging frequency
     private var frameCount = 0
 
     /// Real Vision-based detection
-    private func performVisionDetection(pixelBuffer: CVPixelBuffer) async -> [DetectionResult] {
+    private func performVisionDetection(
+        pixelBuffer: CVPixelBuffer, targetFruit: String, scanningZone: CGRect
+    ) async -> [DetectionResult] {
         guard let request = detectionRequest else {
             print("❌ No detection request available")
             return []
@@ -159,21 +179,68 @@ actor DetectorService: ObjectDetecting {
                 // Try as VNRecognizedObjectObservation (YOLO object detection)
                 if let observations = results as? [VNRecognizedObjectObservation] {
                     if shouldLog && !observations.isEmpty {
-                        print("🎯 Object detections:")
-                        for obs in observations.prefix(5) {
+                        print("🎯 Object detections (looking for \(targetFruit)):")
+                        for obs in observations.prefix(3) {
+                            let topLabels = obs.labels.prefix(3).map {
+                                "\($0.identifier): \(String(format: "%.2f", $0.confidence))"
+                            }
                             print(
-                                "   - \(obs.labels.map { "\($0.identifier): \($0.confidence)" }.joined(separator: ", "))"
+                                "   - [\(String(format: "%.2f", obs.boundingBox.width * obs.boundingBox.height))area] \(topLabels.joined(separator: ", "))"
                             )
                         }
                     }
 
-                    // Convert to DetectionResult, filtering for target fruits
+                    // Convert to DetectionResult with strict filtering:
+                    // 1. Only current target fruit
+                    // 2. High confidence threshold
+                    // 3. Clear confidence margin (not ambiguous)
+                    // 4. Reasonable bounding box size (not full-frame)
+                    // 5. Detection center must be inside scanning zone
                     let filtered = observations.compactMap { observation -> DetectionResult? in
-                        guard let topLabel = observation.labels.first,
-                            topLabel.confidence >= confidenceThreshold,
-                            targetLabels.contains(topLabel.identifier.lowercased())
-                        else {
+                        // Check bounding box is inside scanning zone (center point check)
+                        let centerX = observation.boundingBox.midX
+                        let centerY = observation.boundingBox.midY
+                        guard scanningZone.contains(CGPoint(x: centerX, y: centerY)) else {
                             return nil
+                        }
+
+                        // Check bounding box size - reject if too large (likely classification, not detection)
+                        let boxArea = observation.boundingBox.width * observation.boundingBox.height
+                        guard boxArea < maxBoundingBoxArea else {
+                            if shouldLog {
+                                print(
+                                    "⚠️ Rejected: bounding box too large (\(String(format: "%.2f", boxArea)) > \(maxBoundingBoxArea))"
+                                )
+                            }
+                            return nil
+                        }
+
+                        // Check we have at least one label
+                        guard let topLabel = observation.labels.first else {
+                            return nil
+                        }
+
+                        // Check confidence threshold
+                        guard topLabel.confidence >= confidenceThreshold else {
+                            return nil
+                        }
+
+                        // Check it matches the current target (case-insensitive)
+                        guard topLabel.identifier.lowercased() == targetFruit.lowercased() else {
+                            return nil
+                        }
+
+                        // Check confidence margin - top label should be clearly dominant
+                        if let secondLabel = observation.labels.dropFirst().first {
+                            let margin = topLabel.confidence - secondLabel.confidence
+                            guard margin >= confidenceMargin else {
+                                if shouldLog {
+                                    print(
+                                        "⚠️ Rejected: low margin (\(String(format: "%.2f", margin)) < \(confidenceMargin))"
+                                    )
+                                }
+                                return nil
+                            }
                         }
 
                         return DetectionResult(
@@ -184,7 +251,7 @@ actor DetectorService: ObjectDetecting {
                     }
 
                     if shouldLog && !filtered.isEmpty {
-                        print("✅ Matched fruits: \(filtered.map { $0.label })")
+                        print("✅ Valid \(targetFruit) detection: \(filtered.count) found in zone")
                     }
 
                     return filtered
@@ -220,7 +287,7 @@ actor DetectorService: ObjectDetecting {
     private var mockFrameCount = 0
 
     /// Provides mock detections for testing when model unavailable
-    private func mockDetection() -> [DetectionResult] {
+    private func mockDetection(targetFruit: String) -> [DetectionResult] {
         mockFrameCount += 1
 
         // Only "detect" something every ~30 frames (about once per second)
@@ -229,24 +296,20 @@ actor DetectorService: ObjectDetecting {
             return []
         }
 
-        // Randomly pick a fruit to "detect"
-        let fruits = TargetFruit.allCases
-        let randomFruit = fruits.randomElement()!
-
-        // Random 70% chance to actually detect something
+        // Random 70% chance to actually detect the target
         guard Double.random(in: 0...1) > 0.3 else {
             return []
         }
 
-        // Generate random bounding box in center-ish area
-        let size = CGFloat.random(in: 0.3...0.5)
-        let x = CGFloat.random(in: 0.2...(0.8 - size))
-        let y = CGFloat.random(in: 0.2...(0.8 - size))
+        // Generate random bounding box in center-ish area (inside typical scanning zone)
+        let size = CGFloat.random(in: 0.2...0.4)
+        let x = CGFloat.random(in: 0.3...(0.7 - size))
+        let y = CGFloat.random(in: 0.3...(0.7 - size))
 
         return [
             DetectionResult(
-                label: randomFruit.label,
-                confidence: Float.random(in: 0.7...0.95),
+                label: targetFruit.lowercased(),
+                confidence: Float.random(in: 0.95...0.99),
                 boundingBox: CGRect(x: x, y: y, width: size, height: size)
             )
         ]
@@ -257,7 +320,9 @@ actor DetectorService: ObjectDetecting {
 
 /// A simple mock detector for SwiftUI previews
 final class MockDetectorService: ObjectDetecting, Sendable {
-    func detect(pixelBuffer: CVPixelBuffer) async -> [DetectionResult] {
+    func detect(pixelBuffer: CVPixelBuffer, targetFruit: String, scanningZone: CGRect) async
+        -> [DetectionResult]
+    {
         // Return empty for previews - we'll simulate in the view model
         return []
     }

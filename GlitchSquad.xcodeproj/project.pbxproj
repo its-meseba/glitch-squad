@@ -34,6 +34,7 @@
 		85E8F7C88E10CF5AFA1AEFD8 /* SafeZoneTutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26944D3265B3D64ADF7D3E64 /* SafeZoneTutorialView.swift */; };
 		894B40F31FE9CBBEBE06C12C /* SpeechBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E40E64254829C588CC13E68 /* SpeechBubbleView.swift */; };
 		8A107DD542225AA82988F1E5 /* PixelSleepingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E93B07A44C2F4ADE89E6ADD /* PixelSleepingView.swift */; };
+		8B656B3B055C3EE2997A76A4 /* MissionFailedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A5938FB95339814B641CB0 /* MissionFailedView.swift */; };
 		91F1ED559E8326EA42FA9EE3 /* ParentSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460E28A1888A14B244127268 /* ParentSettings.swift */; };
 		98DEC89EADFCDB5CAD0E2C36 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BE647A600F31077B1DDDE8 /* OnboardingView.swift */; };
 		AFCF593F82900A05E63160AA /* ScanningZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE0E3DAAEA8ED11DE8E28C2 /* ScanningZoneView.swift */; };
@@ -94,6 +95,7 @@
 		988036810ABF3C3EF059EB22 /* mission_accepted.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = mission_accepted.mp3; sourceTree = "<group>"; };
 		98BE647A600F31077B1DDDE8 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		9D04B46105B5EB8D2392D335 /* PixelCharacterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterView.swift; sourceTree = "<group>"; };
+		A9A5938FB95339814B641CB0 /* MissionFailedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissionFailedView.swift; sourceTree = "<group>"; };
 		AFCAD2989DAC9FD99741C2AD /* progress_1_found.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = progress_1_found.mp3; sourceTree = "<group>"; };
 		B2B86222113C6207282F7122 /* success_2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success_2.mp3; sourceTree = "<group>"; };
 		BC023E52731506553AF7DE09 /* DetectionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionResult.swift; sourceTree = "<group>"; };
@@ -115,6 +117,7 @@
 			children = (
 				09B3EF2A2BDB3CC8BE3CA60E /* HolographicBackground.swift */,
 				38E60E4705040A27D45A1C37 /* LiquidUIComponents.swift */,
+				A9A5938FB95339814B641CB0 /* MissionFailedView.swift */,
 				9D04B46105B5EB8D2392D335 /* PixelCharacterView.swift */,
 				FFE8D7947083EEE7375BC63A /* PixelDialogView.swift */,
 				7E93B07A44C2F4ADE89E6ADD /* PixelSleepingView.swift */,
@@ -361,6 +364,7 @@
 				E16B0151CB78BE10897C4CEE /* Mission.swift in Sources */,
 				CA47F3E019EBD1305B782A9D /* MissionBriefingView.swift in Sources */,
 				E0A8152A9A96F191E575E870 /* MissionCompleteView.swift in Sources */,
+				8B656B3B055C3EE2997A76A4 /* MissionFailedView.swift in Sources */,
 				98DEC89EADFCDB5CAD0E2C36 /* OnboardingView.swift in Sources */,
 				BC696A52421AC6594B2BD0BD /* ParentDashboardView.swift in Sources */,
 				428DAB52AA2676815122BC2A /* ParentNotificationService.swift in Sources */,

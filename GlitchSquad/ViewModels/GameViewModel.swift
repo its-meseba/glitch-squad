@@ -23,6 +23,7 @@ enum GameState: Equatable {
     case lockOn  // Object detected, filling confidence meter
     case digitizing  // Capture animation
     case success  // Mission complete celebration
+    case missionFailed  // Time ran out - can retry without penalty
     case gameOver  // All missions done - Pixel repaired!
 }
 
@@ -428,8 +429,16 @@ final class GameViewModel: ObservableObject {
             for await pixelBuffer in cameraService.frameStream {
                 guard !Task.isCancelled else { break }
 
-                // Run detection on actor (background)
-                let detections = await detector.detect(pixelBuffer: pixelBuffer)
+                // Capture current target and zone on main thread before async detection
+                let targetLabel = currentTarget.label
+                let zone = scanningZoneRect
+
+                // Run detection on actor (background) with target and zone info
+                let detections = await detector.detect(
+                    pixelBuffer: pixelBuffer,
+                    targetFruit: targetLabel,
+                    scanningZone: zone
+                )
 
                 // Back on main thread, update state
                 await MainActor.run {
@@ -574,15 +583,53 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-    /// Handle when time runs out
+    /// Handle when time runs out - show failure screen, don't count against daily limit
     private func handleTimeout() {
         stopAllTimers()
         stopFrameProcessing()
         cameraService.stopSession()
 
-        // Automatically move to next round after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.nextRound()
+        // Reset detection state
+        lockOnProgress = 0.0
+        currentDetection = nil
+        isObjectInZone = false
+        consecutiveDetections = 0
+
+        // Show mission failed screen (does NOT count against daily limit)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            gameState = .missionFailed
+        }
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
+    }
+
+    /// Retry the same mission after failure
+    func retryMission() {
+        // Reset state for retry
+        lockOnProgress = 0.0
+        currentDetection = nil
+        isObjectInZone = false
+        consecutiveDetections = 0
+
+        // Go back to briefing to restart
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            gameState = .missionBriefing
+        }
+    }
+
+    /// Go back to base after failed mission (without penalty)
+    func abandonMission() {
+        // Reset state
+        lockOnProgress = 0.0
+        currentDetection = nil
+        isObjectInZone = false
+        consecutiveDetections = 0
+
+        // Return to base without consuming daily mission
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+            gameState = .base
         }
     }
 

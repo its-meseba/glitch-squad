@@ -83,6 +83,19 @@ struct ContentView: View {
                 }
                 .transition(.opacity)  // Smoother transition for full screen success
 
+            case .missionFailed:
+                MissionFailedView(
+                    targetName: viewModel.currentTarget.displayName,
+                    targetEmoji: viewModel.currentTarget.emoji,
+                    onTryAgain: {
+                        viewModel.retryMission()
+                    },
+                    onGoBack: {
+                        viewModel.abandonMission()
+                    }
+                )
+                .transition(.opacity)
+
             case .gameOver:
                 GameCompleteView(
                     totalBits: viewModel.glitchBits,
