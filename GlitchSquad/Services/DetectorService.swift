@@ -33,7 +33,7 @@ actor DetectorService: ObjectDetecting {
     private(set) var isMockMode: Bool = false
 
     /// Minimum confidence threshold for detections
-    private let confidenceThreshold: Float = 0.5
+    private let confidenceThreshold: Float = 0.7
 
     /// Labels we care about (fruits only)
     private let targetLabels = Set(["apple", "banana", "orange"])
@@ -46,6 +46,8 @@ actor DetectorService: ObjectDetecting {
 
     /// Set up the Core ML model for Vision
     private func setupModel() {
+        // Model name to load
+        let modelName = "yolov11m"
         // Debug: List all bundle resources
         print("🔍 Searching for model in bundle...")
         if let bundlePath = Bundle.main.resourcePath {
@@ -53,21 +55,21 @@ actor DetectorService: ObjectDetecting {
         }
 
         // Try compiled model first (.mlmodelc)
-        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: "mlmodelc") {
+        if let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") {
             print("✅ Found compiled model: \(modelURL)")
             loadModel(from: modelURL)
             return
         }
 
         // Try mlpackage
-        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: "mlpackage") {
+        if let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlpackage") {
             print("✅ Found mlpackage: \(modelURL)")
             loadModel(from: modelURL)
             return
         }
 
         // Try without extension
-        if let modelURL = Bundle.main.url(forResource: "yolov8n", withExtension: nil) {
+        if let modelURL = Bundle.main.url(forResource: modelName, withExtension: nil) {
             print("✅ Found model (no ext): \(modelURL)")
             loadModel(from: modelURL)
             return

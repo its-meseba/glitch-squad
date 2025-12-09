@@ -15,6 +15,8 @@ import SwiftUI
 /// The current state of the Glitch Squad game
 enum GameState: Equatable {
     case intro  // Opening cinematic with Pixel
+    case base  // Home screen with island
+    case collection  // Item gallery
     case missionBriefing  // Pixel explains the mission
     case goal  // (Legacy - not used in new flow)
     case hunt  // Camera active, searching for target
@@ -57,6 +59,9 @@ final class GameViewModel: ObservableObject {
     /// Latest detection for showing bounding box
     @Published private(set) var currentDetection: DetectionResult?
 
+    /// Whether object is detected inside the scanning zone
+    @Published private(set) var isObjectInZone: Bool = false
+
     /// Current mission being played
     @Published private(set) var currentMission: Mission = Mission.campaign[0]
 
@@ -69,8 +74,25 @@ final class GameViewModel: ObservableObject {
     /// Pixel's current state (for character display)
     @Published private(set) var pixelState: PixelState = .sad
 
+    /// Game progress for persistence and collection
+    @Published private(set) var progress: GameProgress = GameProgress()
+
+    /// Daily progress for energy cap
+    @Published private(set) var dailyProgress: DailyProgress = DailyProgress.load()
+
+    /// Activity log for parent dashboard
+    let activityLog = ActivityLog.load()
+
+    /// Scanning zone rect in normalized coordinates (0-1)
+    /// Dynamically calculated to ensure it matches the visual square on screen
+    @Published private(set) var scanningZoneRect: CGRect = CGRect(
+        x: 0.175, y: 0.175, width: 0.65, height: 0.65)
+
     /// Whether the intro has been seen
     @AppStorage("hasSeenIntro") private var hasSeenIntro: Bool = false
+
+    /// Whether the safe zone tutorial has been completed
+    @AppStorage("hasSeenTutorial") var hasSeenTutorial: Bool = false
 
     // MARK: - Services
 
@@ -97,10 +119,12 @@ final class GameViewModel: ObservableObject {
     // MARK: - Configuration
 
     /// How much confidence increases per detection (per frame)
-    private let confidenceIncrement: Double = 0.05  // 5% per update
+    /// At 20Hz, 0.02 per update = ~2.5 seconds to fill (50 updates)
+    private let confidenceIncrement: Double = 0.02
 
     /// How much confidence decays when object lost (per frame)
-    private let confidenceDecay: Double = 0.03  // 3% per update
+    /// Slightly faster decay keeps the game responsive
+    private let confidenceDecay: Double = 0.025
 
     /// Starting time for hunt phase
     private let huntDuration: Int = 60
@@ -139,11 +163,42 @@ final class GameViewModel: ObservableObject {
 
         // Determine starting state
         if hasSeenIntro {
-            // Skip intro on subsequent launches
-            gameState = .missionBriefing
+            // Skip intro on subsequent launches, go to base
+            gameState = .base
         } else {
             gameState = .intro
         }
+    }
+
+    /// Update scanning zone based on screen aspect ratio
+    /// Ensures the logical detection zone matches the visual square UI
+    func updateScreenGeometry(size: CGSize) {
+        guard size.width > 0, size.height > 0 else { return }
+
+        // Standard Portrait Camera Aspect Ratio (9:16)
+        // We assume the camera feed effectively matches this ratio
+        let cameraAspectRatio: CGFloat = 9.0 / 16.0
+        let viewAspectRatio = size.width / size.height
+
+        // 1. Calculate Zone Height (Vertical coverage)
+        // Visual Square Height represents (0.65 * ViewWidth) pixels
+        // In Vision Normalized Y (0-1 maps to ViewHeight), this is:
+        // (0.65 * ViewWidth) / ViewHeight = 0.65 * ViewAspectRatio
+        let zoneHeight = 0.65 * viewAspectRatio
+
+        // 2. Calculate Zone Width (Horizontal coverage)
+        // Visual Square Width represents (0.65 * ViewWidth) pixels
+        // Vision Normalized X (0-1) is wider than View because of AspectFill cropping.
+        // View covers only (ViewAspectRatio / CameraAspectRatio) percent of Vision Image.
+        // So 1.0 ViewWidth = (ViewAspectRatio / CameraAspectRatio) VisionWidth.
+        // Target (0.65 ViewWidth) = 0.65 * (ViewAR / CameraAR) VisionWidth.
+        let zoneWidth = 0.65 * (viewAspectRatio / cameraAspectRatio)
+
+        // Center it
+        let x = (1.0 - zoneWidth) / 2
+        let y = (1.0 - zoneHeight) / 2
+
+        scanningZoneRect = CGRect(x: x, y: y, width: zoneWidth, height: zoneHeight)
     }
 
     /// Called when intro animation completes
@@ -151,7 +206,44 @@ final class GameViewModel: ObservableObject {
         hasSeenIntro = true
 
         withAnimation(.easeInOut(duration: 0.5)) {
+            gameState = .base
+        }
+    }
+
+    /// Called when safe zone tutorial completes
+    func completeTutorial() {
+        hasSeenTutorial = true
+
+        // Request notification permission
+        Task {
+            await ParentNotificationService.shared.requestAuthorization()
+            await ParentNotificationService.shared.checkAuthorizationStatus()
+
+            // Schedule daily reminder if authorized
+            if ParentNotificationService.shared.isAuthorized {
+                ParentNotificationService.shared.scheduleDailyReminder()
+            }
+        }
+    }
+
+    /// Navigate to mission briefing from base
+    func goToMissionBriefing() {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
             gameState = .missionBriefing
+        }
+    }
+
+    /// Navigate to collection from base
+    func goToCollection() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            gameState = .collection
+        }
+    }
+
+    /// Navigate back to base from collection
+    func goToBase() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            gameState = .base
         }
     }
 
@@ -196,13 +288,63 @@ final class GameViewModel: ObservableObject {
         }
     }
 
+    /// Update daily progress (for parent dashboard)
+    func updateDailyProgress(_ newProgress: DailyProgress) {
+        dailyProgress = newProgress
+        activityLog.log(.bonusGranted, details: "Parent granted bonus mission")
+    }
+
+    /// Check if child can play (energy cap)
+    var canStartMission: Bool {
+        dailyProgress.canPlay && currentMissionIndex < Mission.campaign.count
+    }
+
+    /// Force complete mission (parent override) - partial reward
+    func forceCompleteMission() {
+        // Stop timers
+        stopAllTimers()
+        stopFrameProcessing()
+        cameraService.stopSession()
+
+        // Give partial reward (25%)
+        let partialReward = currentMission.rewardBits / 4
+        glitchBits += partialReward
+
+        // Update pixel state
+        pixelState = currentMission.pixelStateAfter
+
+        // Skip digitizing, go straight to success
+        withAnimation(.easeInOut(duration: 0.3)) {
+            gameState = .success
+        }
+
+        // Haptic
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+
     /// Move to next mission or end game
     func nextRound() {
         // Remove completed mission
         missionsRemaining.removeFirst()
 
+        // Add collected item
+        let collectedItem = CollectedItem(
+            itemType: currentTarget.rawValue.lowercased(),
+            missionTitle: currentMission.title
+        )
+        progress.addCollectedItem(collectedItem)
+        progress.currentMissionIndex += 1
+
+        // Record daily mission for energy cap
+        dailyProgress.recordMission()
+
+        // Log activity
+        activityLog.log(.missionCompleted, details: currentMission.title)
+
         if missionsRemaining.isEmpty {
             // Game complete!
+            progress.isPixelRepaired = true
             withAnimation {
                 gameState = .gameOver
             }
@@ -215,9 +357,9 @@ final class GameViewModel: ObservableObject {
             lockOnProgress = 0.0
             currentDetection = nil
 
-            // Back to briefing
+            // Back to base (not briefing directly)
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                gameState = .missionBriefing
+                gameState = .base
             }
         }
     }
@@ -243,9 +385,12 @@ final class GameViewModel: ObservableObject {
         timeRemaining = huntDuration
         currentDetection = nil
 
-        // Start from briefing (not intro on replay)
+        // Reset progress
+        progress = GameProgress()
+
+        // Start from base (not intro on replay)
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-            gameState = .missionBriefing
+            gameState = .base
         }
     }
 
@@ -280,20 +425,46 @@ final class GameViewModel: ObservableObject {
         let targetDetection = detections.first { $0.matches(target: currentTarget) }
 
         if let detection = targetDetection {
-            // Target found!
-            objectDetectedThisFrame = true
+            // Always show the detection bounding box
             currentDetection = detection
 
-            // Transition to lock-on if not already
-            if gameState == .hunt {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    gameState = .lockOn
+            // Check if detection center is inside the scanning zone
+            let isInZone = isDetectionInScanningZone(detection)
+            isObjectInZone = isInZone
+
+            if isInZone {
+                // Target found in zone - trigger lock-on
+                objectDetectedThisFrame = true
+
+                // Transition to lock-on if not already
+                if gameState == .hunt {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        gameState = .lockOn
+                    }
+
+                    // Haptic feedback when lock-on starts
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
                 }
+            } else {
+                // Detected but not in zone - don't count
+                objectDetectedThisFrame = false
             }
         } else {
             objectDetectedThisFrame = false
             currentDetection = nil
+            isObjectInZone = false
         }
+    }
+
+    /// Check if a detection's center is inside the scanning zone
+    private func isDetectionInScanningZone(_ detection: DetectionResult) -> Bool {
+        // Get center of bounding box (Vision coordinates: 0-1, origin bottom-left)
+        let centerX = detection.boundingBox.midX
+        let centerY = detection.boundingBox.midY
+
+        // Check if center is inside the scanning zone rect
+        return scanningZoneRect.contains(CGPoint(x: centerX, y: centerY))
     }
 
     // MARK: - Confidence Bucket Logic

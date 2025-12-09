@@ -73,16 +73,30 @@ struct IntroView: View {
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                Color(hex: "0D0D1A"),
-                Color(hex: "1A1A2E"),
-                Color(hex: "16213E"),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        ZStack {
+            // Dark base
+            Color(hex: "0D0D1A")
+                .ignoresSafeArea()
+
+            // Broken base background image
+            Image("broken_base")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+                .opacity(0.8)
+
+            // Overlay gradient for depth
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.black.opacity(0.5),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        }
     }
 
     // MARK: - Intro Sequence

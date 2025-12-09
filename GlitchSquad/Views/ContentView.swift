@@ -15,6 +15,7 @@ struct ContentView: View {
 
     @StateObject private var viewModel = GameViewModel()
     @StateObject private var audioService = AudioService()
+    @State private var showTutorial: Bool = false
 
     var body: some View {
         ZStack {
@@ -22,8 +23,34 @@ struct ContentView: View {
             case .intro:
                 IntroView(audioService: audioService) {
                     viewModel.completeIntro()
+                    // Show tutorial if first time
+                    if !viewModel.hasSeenTutorial {
+                        showTutorial = true
+                    }
                 }
                 .transition(.opacity)
+
+            case .base:
+                BaseView(
+                    viewModel: viewModel,
+                    audioService: audioService,
+                    onStartMission: {
+                        viewModel.goToMissionBriefing()
+                    },
+                    onOpenCollection: {
+                        viewModel.goToCollection()
+                    }
+                )
+                .transition(.opacity)
+
+            case .collection:
+                CollectionView(
+                    progress: viewModel.progress,
+                    onDismiss: {
+                        viewModel.goToBase()
+                    }
+                )
+                .transition(.move(edge: .trailing).combined(with: .opacity))
 
             case .missionBriefing:
                 MissionBriefingView(
@@ -74,6 +101,14 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.5), value: viewModel.gameState)
         .task {
             await viewModel.onAppear()
+            // Clear notification badge on app open
+            ParentNotificationService.shared.clearBadge()
+        }
+        .fullScreenCover(isPresented: $showTutorial) {
+            SafeZoneTutorialView {
+                viewModel.completeTutorial()
+                showTutorial = false
+            }
         }
     }
 }

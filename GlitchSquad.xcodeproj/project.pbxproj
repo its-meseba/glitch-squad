@@ -3,18 +3,37 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		044DFCE086529204AF360EB5 /* DailyProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01D58B55D8A3E6C6FD45E1A /* DailyProgress.swift */; };
 		06F5DF6ECBAC369ADADAE169 /* DigitizeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B9B8F1A832AD43C967028A /* DigitizeView.swift */; };
+		0E27B441ED8600DC47DBD250 /* ParentSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92F2D221CFA3AB78CF22529 /* ParentSettingsView.swift */; };
+		133F9340626273ACB9FF0E37 /* mission_apple.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2E40710C04F29B5BC75F0C23 /* mission_apple.mp3 */; };
 		1D64031342FAA846FA436539 /* DetectionResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC023E52731506553AF7DE09 /* DetectionResult.swift */; };
 		291BDBBBC0A4E7B2E49B45A5 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDB0404ABB9CFFAAF1517E0 /* CameraPreviewView.swift */; };
+		2AD940025875D4EB25DDC70F /* success_3.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = D83797ADF300D51E428DA221 /* success_3.mp3 */; };
 		2B87BB1AED96E96100BD8ABD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A1EB3A9A5D4A2D434270A1 /* ContentView.swift */; };
+		2C7468F9BE214B6176F0ACE6 /* game_complete.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 6229D3F5C378EBF41F53BDAF /* game_complete.mp3 */; };
+		33058D7F30847AC3D732B2EC /* success_1.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = EAB040963436371C7388B467 /* success_1.mp3 */; };
 		3BC574CAD78BAA95C27264FB /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C57FDD5D91B770A0225FD51 /* GameViewModel.swift */; };
+		428DAB52AA2676815122BC2A /* ParentNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D058173C4DEDE6E75C7C886 /* ParentNotificationService.swift */; };
+		4B74AEF14E780E3B084F4E56 /* misson_banana.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = EACF5E1D1FED755BCC209455 /* misson_banana.mp3 */; };
+		65A3EF153989FF48EBFF1238 /* CollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8801191D6AD0A84A3C3CFB /* CollectionView.swift */; };
+		6AF5E45420972096C5DF68FA /* intro_greeting.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E096DA9F664BE92DB909ADA1 /* intro_greeting.mp3 */; };
+		779A6E06D37380051C9B2E0E /* success_2.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = B2B86222113C6207282F7122 /* success_2.mp3 */; };
 		7AC791E2470932EBF2086BA9 /* LiquidUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E60E4705040A27D45A1C37 /* LiquidUIComponents.swift */; };
+		7F18B1FAD88DC8139FE595E2 /* PrivacyBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD7F7DABC1FE845C0029F79 /* PrivacyBadge.swift */; };
+		85E8F7C88E10CF5AFA1AEFD8 /* SafeZoneTutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26944D3265B3D64ADF7D3E64 /* SafeZoneTutorialView.swift */; };
+		8A107DD542225AA82988F1E5 /* PixelSleepingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E93B07A44C2F4ADE89E6ADD /* PixelSleepingView.swift */; };
+		91F1ED559E8326EA42FA9EE3 /* ParentSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460E28A1888A14B244127268 /* ParentSettings.swift */; };
+		AFCF593F82900A05E63160AA /* ScanningZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE0E3DAAEA8ED11DE8E28C2 /* ScanningZoneView.swift */; };
+		B1677070FF47380503EE93A9 /* BaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1173E00C3587287D8510784C /* BaseView.swift */; };
+		B3178D84751E6DC14C4FE772 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7A67C85BED853A688284A082 /* Assets.xcassets */; };
 		B3417D7CE62C30D68C4A704B /* DetectorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FB90F3BC1A2C7BEBBD00E2F /* DetectorService.swift */; };
 		B4262E50FC9B37AB159821A0 /* GlitchSquadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50990E0CC928390100B578EA /* GlitchSquadApp.swift */; };
+		BC696A52421AC6594B2BD0BD /* ParentDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22CE20241F718545CD8CC6A3 /* ParentDashboardView.swift */; };
 		C1797F616B7152C4A04D7346 /* IntroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC4197300B0447E4F679AC8 /* IntroView.swift */; };
 		C53F60FC206BAA5B60380C12 /* CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10DD6C4DAA3B97EA7823D24E /* CameraService.swift */; };
 		CA47F3E019EBD1305B782A9D /* MissionBriefingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 870963E1B03F8C1D33A6B819 /* MissionBriefingView.swift */; };
@@ -22,25 +41,46 @@
 		DB9AFC11433FD5C2E8875EC0 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B12C97E38212A4B6437B39 /* AudioService.swift */; };
 		E16B0151CB78BE10897C4CEE /* Mission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00C5775D1174E36FD4D9D414 /* Mission.swift */; };
 		EB62359AAD63D7E725B96558 /* PixelCharacterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D04B46105B5EB8D2392D335 /* PixelCharacterView.swift */; };
+		F25EFE6A0B90AFE984B630BC /* mission_orange.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 3808302A165907AFA722F6D0 /* mission_orange.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		00C5775D1174E36FD4D9D414 /* Mission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mission.swift; sourceTree = "<group>"; };
 		10DD6C4DAA3B97EA7823D24E /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraService.swift; sourceTree = "<group>"; };
+		1173E00C3587287D8510784C /* BaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseView.swift; sourceTree = "<group>"; };
 		18A1EB3A9A5D4A2D434270A1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1F8801191D6AD0A84A3C3CFB /* CollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionView.swift; sourceTree = "<group>"; };
 		1FB90F3BC1A2C7BEBBD00E2F /* DetectorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectorService.swift; sourceTree = "<group>"; };
+		22CE20241F718545CD8CC6A3 /* ParentDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentDashboardView.swift; sourceTree = "<group>"; };
+		26944D3265B3D64ADF7D3E64 /* SafeZoneTutorialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeZoneTutorialView.swift; sourceTree = "<group>"; };
+		2E40710C04F29B5BC75F0C23 /* mission_apple.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = mission_apple.mp3; sourceTree = "<group>"; };
 		31B12C97E38212A4B6437B39 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		3808302A165907AFA722F6D0 /* mission_orange.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = mission_orange.mp3; sourceTree = "<group>"; };
 		38E60E4705040A27D45A1C37 /* LiquidUIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidUIComponents.swift; sourceTree = "<group>"; };
 		3C57FDD5D91B770A0225FD51 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
+		460E28A1888A14B244127268 /* ParentSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSettings.swift; sourceTree = "<group>"; };
 		50990E0CC928390100B578EA /* GlitchSquadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlitchSquadApp.swift; sourceTree = "<group>"; };
 		5EDB0404ABB9CFFAAF1517E0 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		5FD7F7DABC1FE845C0029F79 /* PrivacyBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyBadge.swift; sourceTree = "<group>"; };
+		6229D3F5C378EBF41F53BDAF /* game_complete.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = game_complete.mp3; sourceTree = "<group>"; };
 		6736B8FAA95410F61E0D686D /* MainGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainGameView.swift; sourceTree = "<group>"; };
 		6AC4197300B0447E4F679AC8 /* IntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroView.swift; sourceTree = "<group>"; };
+		6D058173C4DEDE6E75C7C886 /* ParentNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentNotificationService.swift; sourceTree = "<group>"; };
+		7A67C85BED853A688284A082 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7E93B07A44C2F4ADE89E6ADD /* PixelSleepingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelSleepingView.swift; sourceTree = "<group>"; };
 		870963E1B03F8C1D33A6B819 /* MissionBriefingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissionBriefingView.swift; sourceTree = "<group>"; };
 		95B9B8F1A832AD43C967028A /* DigitizeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitizeView.swift; sourceTree = "<group>"; };
 		9D04B46105B5EB8D2392D335 /* PixelCharacterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelCharacterView.swift; sourceTree = "<group>"; };
+		B2B86222113C6207282F7122 /* success_2.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success_2.mp3; sourceTree = "<group>"; };
 		BC023E52731506553AF7DE09 /* DetectionResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionResult.swift; sourceTree = "<group>"; };
-		DDFB115C8170E3FF37061156 /* GlitchSquad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GlitchSquad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEE0E3DAAEA8ED11DE8E28C2 /* ScanningZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanningZoneView.swift; sourceTree = "<group>"; };
+		C01D58B55D8A3E6C6FD45E1A /* DailyProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyProgress.swift; sourceTree = "<group>"; };
+		D83797ADF300D51E428DA221 /* success_3.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success_3.mp3; sourceTree = "<group>"; };
+		D92F2D221CFA3AB78CF22529 /* ParentSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentSettingsView.swift; sourceTree = "<group>"; };
+		DDFB115C8170E3FF37061156 /* Glitch Squad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Glitch Squad.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E096DA9F664BE92DB909ADA1 /* intro_greeting.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = intro_greeting.mp3; sourceTree = "<group>"; };
+		EAB040963436371C7388B467 /* success_1.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = success_1.mp3; sourceTree = "<group>"; };
+		EACF5E1D1FED755BCC209455 /* misson_banana.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = misson_banana.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -49,20 +89,50 @@
 			children = (
 				38E60E4705040A27D45A1C37 /* LiquidUIComponents.swift */,
 				9D04B46105B5EB8D2392D335 /* PixelCharacterView.swift */,
+				7E93B07A44C2F4ADE89E6ADD /* PixelSleepingView.swift */,
+				5FD7F7DABC1FE845C0029F79 /* PrivacyBadge.swift */,
+				BEE0E3DAAEA8ED11DE8E28C2 /* ScanningZoneView.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		379480C1E5E8981804B9F48F /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				26944D3265B3D64ADF7D3E64 /* SafeZoneTutorialView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		5239864DE4B4DE003CC61E1B /* Voice */ = {
+			isa = PBXGroup;
+			children = (
+				6229D3F5C378EBF41F53BDAF /* game_complete.mp3 */,
+				E096DA9F664BE92DB909ADA1 /* intro_greeting.mp3 */,
+				2E40710C04F29B5BC75F0C23 /* mission_apple.mp3 */,
+				3808302A165907AFA722F6D0 /* mission_orange.mp3 */,
+				EACF5E1D1FED755BCC209455 /* misson_banana.mp3 */,
+				EAB040963436371C7388B467 /* success_1.mp3 */,
+				B2B86222113C6207282F7122 /* success_2.mp3 */,
+				D83797ADF300D51E428DA221 /* success_3.mp3 */,
+			);
+			path = Voice;
 			sourceTree = "<group>";
 		};
 		5C0BDDF67E71A6F4E2F98391 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1173E00C3587287D8510784C /* BaseView.swift */,
 				5EDB0404ABB9CFFAAF1517E0 /* CameraPreviewView.swift */,
+				1F8801191D6AD0A84A3C3CFB /* CollectionView.swift */,
 				18A1EB3A9A5D4A2D434270A1 /* ContentView.swift */,
 				95B9B8F1A832AD43C967028A /* DigitizeView.swift */,
 				6AC4197300B0447E4F679AC8 /* IntroView.swift */,
 				6736B8FAA95410F61E0D686D /* MainGameView.swift */,
 				870963E1B03F8C1D33A6B819 /* MissionBriefingView.swift */,
 				074926661374126EC304B01A /* Components */,
+				379480C1E5E8981804B9F48F /* Onboarding */,
+				D4A53643F69479F916B8B100 /* Parent */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -70,10 +140,21 @@
 		9B7D13A24F9ACE427A9882BE /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C01D58B55D8A3E6C6FD45E1A /* DailyProgress.swift */,
 				BC023E52731506553AF7DE09 /* DetectionResult.swift */,
 				00C5775D1174E36FD4D9D414 /* Mission.swift */,
+				460E28A1888A14B244127268 /* ParentSettings.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		BD086A2B63A643486BF446B1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7A67C85BED853A688284A082 /* Assets.xcassets */,
+				DBC8B554ED76E54A64FA7F56 /* Sounds */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		CE315BD9284435BDDC1B7650 /* GlitchSquad */ = {
@@ -81,6 +162,7 @@
 			children = (
 				50990E0CC928390100B578EA /* GlitchSquadApp.swift */,
 				9B7D13A24F9ACE427A9882BE /* Models */,
+				BD086A2B63A643486BF446B1 /* Resources */,
 				F316C662A0600BA25EF3FBCD /* Services */,
 				F09FF08DC88696E0851BCEF6 /* ViewModels */,
 				5C0BDDF67E71A6F4E2F98391 /* Views */,
@@ -96,10 +178,27 @@
 			);
 			sourceTree = "<group>";
 		};
+		D4A53643F69479F916B8B100 /* Parent */ = {
+			isa = PBXGroup;
+			children = (
+				22CE20241F718545CD8CC6A3 /* ParentDashboardView.swift */,
+				D92F2D221CFA3AB78CF22529 /* ParentSettingsView.swift */,
+			);
+			path = Parent;
+			sourceTree = "<group>";
+		};
+		DBC8B554ED76E54A64FA7F56 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				5239864DE4B4DE003CC61E1B /* Voice */,
+			);
+			path = Sounds;
+			sourceTree = "<group>";
+		};
 		DF90C2ABC0BBE262FAE4A9B0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DDFB115C8170E3FF37061156 /* GlitchSquad.app */,
+				DDFB115C8170E3FF37061156 /* Glitch Squad.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -118,6 +217,7 @@
 				31B12C97E38212A4B6437B39 /* AudioService.swift */,
 				10DD6C4DAA3B97EA7823D24E /* CameraService.swift */,
 				1FB90F3BC1A2C7BEBBD00E2F /* DetectorService.swift */,
+				6D058173C4DEDE6E75C7C886 /* ParentNotificationService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -130,6 +230,7 @@
 			buildConfigurationList = 874071DE73134DFC52D09190 /* Build configuration list for PBXNativeTarget "GlitchSquad" */;
 			buildPhases = (
 				D30612E830619D49629668C0 /* Sources */,
+				0FB8E22E4F0C38083B369294 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -139,7 +240,7 @@
 			packageProductDependencies = (
 			);
 			productName = GlitchSquad;
-			productReference = DDFB115C8170E3FF37061156 /* GlitchSquad.app */;
+			productReference = DDFB115C8170E3FF37061156 /* Glitch Squad.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -166,7 +267,6 @@
 			);
 			mainGroup = CF292D5B881D4035DA1504A7;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -175,15 +275,37 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		0FB8E22E4F0C38083B369294 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B3178D84751E6DC14C4FE772 /* Assets.xcassets in Resources */,
+				2C7468F9BE214B6176F0ACE6 /* game_complete.mp3 in Resources */,
+				6AF5E45420972096C5DF68FA /* intro_greeting.mp3 in Resources */,
+				133F9340626273ACB9FF0E37 /* mission_apple.mp3 in Resources */,
+				F25EFE6A0B90AFE984B630BC /* mission_orange.mp3 in Resources */,
+				4B74AEF14E780E3B084F4E56 /* misson_banana.mp3 in Resources */,
+				33058D7F30847AC3D732B2EC /* success_1.mp3 in Resources */,
+				779A6E06D37380051C9B2E0E /* success_2.mp3 in Resources */,
+				2AD940025875D4EB25DDC70F /* success_3.mp3 in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		D30612E830619D49629668C0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				DB9AFC11433FD5C2E8875EC0 /* AudioService.swift in Sources */,
+				B1677070FF47380503EE93A9 /* BaseView.swift in Sources */,
 				291BDBBBC0A4E7B2E49B45A5 /* CameraPreviewView.swift in Sources */,
 				C53F60FC206BAA5B60380C12 /* CameraService.swift in Sources */,
+				65A3EF153989FF48EBFF1238 /* CollectionView.swift in Sources */,
 				2B87BB1AED96E96100BD8ABD /* ContentView.swift in Sources */,
+				044DFCE086529204AF360EB5 /* DailyProgress.swift in Sources */,
 				1D64031342FAA846FA436539 /* DetectionResult.swift in Sources */,
 				B3417D7CE62C30D68C4A704B /* DetectorService.swift in Sources */,
 				06F5DF6ECBAC369ADADAE169 /* DigitizeView.swift in Sources */,
@@ -194,7 +316,15 @@
 				CC16F589DD343FFE393658F8 /* MainGameView.swift in Sources */,
 				E16B0151CB78BE10897C4CEE /* Mission.swift in Sources */,
 				CA47F3E019EBD1305B782A9D /* MissionBriefingView.swift in Sources */,
+				BC696A52421AC6594B2BD0BD /* ParentDashboardView.swift in Sources */,
+				428DAB52AA2676815122BC2A /* ParentNotificationService.swift in Sources */,
+				91F1ED559E8326EA42FA9EE3 /* ParentSettings.swift in Sources */,
+				0E27B441ED8600DC47DBD250 /* ParentSettingsView.swift in Sources */,
 				EB62359AAD63D7E725B96558 /* PixelCharacterView.swift in Sources */,
+				8A107DD542225AA82988F1E5 /* PixelSleepingView.swift in Sources */,
+				7F18B1FAD88DC8139FE595E2 /* PrivacyBadge.swift in Sources */,
+				85E8F7C88E10CF5AFA1AEFD8 /* SafeZoneTutorialView.swift in Sources */,
+				AFCF593F82900A05E63160AA /* ScanningZoneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,6 +464,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				COREML_CODEGEN_LANGUAGE = Swift;
+				DEVELOPMENT_TEAM = BVYJVR78XC;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlitchSquad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Glitch Squad";
@@ -363,6 +494,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				COREML_CODEGEN_LANGUAGE = Swift;
+				DEVELOPMENT_TEAM = BVYJVR78XC;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlitchSquad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Glitch Squad";

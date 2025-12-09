@@ -93,11 +93,23 @@ struct MissionBriefingView: View {
 
     private var backgroundGradient: some View {
         ZStack {
+            // Dark base
+            Color(hex: "0D0D1A")
+                .ignoresSafeArea()
+
+            // Broken base background image
+            Image("broken_base")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+                .opacity(0.7)
+
+            // Overlay gradient for depth
             LinearGradient(
                 colors: [
-                    Color(hex: "1A1A2E"),
-                    Color(hex: "16213E"),
-                    Color(hex: "0F3460"),
+                    Color.black.opacity(0.2),
+                    Color.clear,
+                    Color.black.opacity(0.4),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

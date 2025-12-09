@@ -114,10 +114,24 @@ struct CameraPreviewPlaceholder: View {
 // MARK: - Detection Box Overlay
 
 /// Draws a bounding box around detected objects
+/// Shows different colors based on whether object is in the scanning zone
 struct DetectionBoxOverlay: View {
 
     let detection: DetectionResult?
     let screenSize: CGSize
+    let scanningZoneRect: CGRect
+    let isInZone: Bool
+
+    // Colors for in-zone vs out-of-zone
+    private var strokeColors: [Color] {
+        if isInZone {
+            // Green gradient when in zone
+            return [Color(hex: "00FF94"), Color(hex: "00D9FF")]
+        } else {
+            // Orange/yellow when outside zone (guiding user)
+            return [Color(hex: "FFB800"), Color(hex: "FF6B6B")]
+        }
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -132,36 +146,73 @@ struct DetectionBoxOverlay: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [
-                                Color(hex: "00D9FF"),
-                                Color(hex: "00FF94"),
-                            ],
+                            colors: strokeColors,
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 3
+                        lineWidth: isInZone ? 4 : 3
                     )
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: rect.midY)
                     .animation(.easeOut(duration: 0.1), value: detection.boundingBox)
+                    .animation(.easeOut(duration: 0.2), value: isInZone)
 
-                // Corner accents
+                // Corner accents with zone-aware colors
                 ForEach(0..<4, id: \.self) { corner in
-                    CornerAccent(corner: corner)
+                    CornerAccent(corner: corner, isInZone: isInZone)
                         .position(cornerPosition(for: corner, in: rect))
+                }
+
+                // "Move to zone" hint when detected but outside
+                if !isInZone {
+                    Text("Move to zone ↑")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(hex: "FFB800"), in: Capsule())
+                        .position(x: rect.midX, y: rect.maxY + 30)
                 }
             }
         }
     }
 
     /// Convert Vision bounding box to screen coordinates
+    /// accounts for Aspect Fill scaling (cropping)
     private func convertBoundingBox(_ box: CGRect, to size: CGSize) -> CGRect {
-        // Vision: origin at bottom-left, coordinates 0-1
-        // SwiftUI: origin at top-left, coordinates in points
-        let x = box.minX * size.width
-        let y = (1 - box.maxY) * size.height  // Flip Y axis
-        let width = box.width * size.width
-        let height = box.height * size.height
+        // 1. Determine the scale factor used by Aspect Fill
+        // Standard Portrait Camera is 9:16 (720x1280 or 1080x1920) = 0.5625 ratio
+        let cameraAspectRatio: CGFloat = 9.0 / 16.0
+
+        // Calculate Scale: max(viewWidth / imageWidth, viewHeight / imageHeight)
+        // Since we work in normalized coords, imageWidth=1, imageHeight=cameraAspectRatio (relative to width? No.)
+        // Let's us View dimensions.
+        // View Height / View Width
+        let viewAspectRatio = size.width / size.height
+
+        // Since View (e.g. 0.46) is skinnier than Camera (0.56),
+        // AspectFill scales by HEIGHT.
+        // Scaled Image Width = View Height * CameraAspectRatio
+        let scaledImageWidth = size.height * cameraAspectRatio
+        let scaledImageHeight = size.height
+
+        // 2. Calculate offset (cropping)
+        // xOffset is how much the image is shifted left to center it
+        let xOffset = (scaledImageWidth - size.width) / 2.0
+        let yOffset: CGFloat = 0  // Height matches exactly
+
+        // 3. Map Coordinates
+        // box.minX is 0..1 relative to Full Image Width
+        let x = (box.minX * scaledImageWidth) - xOffset
+        // Vision Y is 0 (bottom) to 1 (top). SwiftUI is 0 (top) to 1 (bottom).
+        // box.maxY in Vision = 1.0 - box.minY in SwiftUI logic (if flip needed)
+        // Note: box.maxY is the top edge in Vision (visually).
+        // In SwiftUI 0 is top.
+        // Let's use (1 - maxY) for top edge.
+        let y = (1 - box.maxY) * scaledImageHeight - yOffset
+
+        let width = box.width * scaledImageWidth
+        let height = box.height * scaledImageHeight
 
         return CGRect(x: x, y: y, width: width, height: height)
     }
@@ -181,6 +232,12 @@ struct DetectionBoxOverlay: View {
 /// Corner accent for detection box
 struct CornerAccent: View {
     let corner: Int
+    let isInZone: Bool
+
+    // Colors for in-zone vs out-of-zone
+    private var accentColor: Color {
+        isInZone ? Color(hex: "00D9FF") : Color(hex: "FFB800")
+    }
 
     var body: some View {
         Path { path in
@@ -208,10 +265,11 @@ struct CornerAccent: View {
             }
         }
         .stroke(
-            Color(hex: "00D9FF"),
+            accentColor,
             style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
         )
-        .shadow(color: Color(hex: "00D9FF").opacity(0.8), radius: 4)
+        .shadow(color: accentColor.opacity(0.8), radius: 4)
+        .animation(.easeOut(duration: 0.2), value: isInZone)
     }
 }
 
@@ -227,7 +285,9 @@ struct CornerAccent: View {
                 confidence: 0.85,
                 boundingBox: CGRect(x: 0.2, y: 0.3, width: 0.3, height: 0.3)
             ),
-            screenSize: UIScreen.main.bounds.size
+            screenSize: UIScreen.main.bounds.size,
+            scanningZoneRect: CGRect(x: 0.15, y: 0.25, width: 0.7, height: 0.5),
+            isInZone: true
         )
     }
     .ignoresSafeArea()

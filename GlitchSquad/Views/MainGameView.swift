@@ -16,6 +16,8 @@ struct MainGameView: View {
     @ObservedObject var viewModel: GameViewModel
     @ObservedObject var audioService: AudioService
     @Namespace private var animation
+    @State private var showParentOverride: Bool = false
+    @State private var huntStartTime: Date = Date()
 
     var body: some View {
         GeometryReader { geometry in
@@ -24,23 +26,95 @@ struct MainGameView: View {
                 cameraLayer
 
                 // Layer 2: Detection overlay (bounding boxes)
+                // Only show when object is detected (inside or outside zone)
                 if viewModel.gameState == .hunt || viewModel.gameState == .lockOn {
                     DetectionBoxOverlay(
                         detection: viewModel.currentDetection,
-                        screenSize: geometry.size
+                        screenSize: geometry.size,
+                        scanningZoneRect: viewModel.scanningZoneRect,
+                        isInZone: viewModel.isObjectInZone
                     )
                 }
 
-                // Layer 3: Game HUD overlay
+                // Layer 3: Scanning Zone (center frame)
+                if viewModel.gameState == .hunt || viewModel.gameState == .lockOn {
+                    ScanningZoneView(
+                        progress: viewModel.lockOnProgress,
+                        isObjectDetected: viewModel.isObjectInZone
+                    )
+                }
+
+                // Layer 4: Game HUD overlay
                 gameHUDLayer(in: geometry)
 
-                // Layer 4: Lock-on UI
-                if viewModel.gameState == .lockOn {
-                    lockOnOverlay
+                // Layer 5: Privacy Badge (top-right)
+                VStack {
+                    HStack {
+                        Spacer()
+                        PrivacyBadge()
+                            .padding(.top, geometry.safeAreaInsets.top + 60)
+                            .padding(.trailing, 16)
+                    }
+                    Spacer()
+
+                    // Parent Override Button (shows after 30s of no success)
+                    if showParentOverride {
+                        parentOverrideButton
+                            .padding(.bottom, geometry.safeAreaInsets.bottom + 100)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+            }
+            .onAppear {
+                viewModel.updateScreenGeometry(size: geometry.size)
+            }
+            .onChange(of: geometry.size) { newSize in
+                viewModel.updateScreenGeometry(size: newSize)
             }
         }
         .ignoresSafeArea()
+        .onAppear {
+            huntStartTime = Date()
+            showParentOverride = false
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            // Show parent override after 30 seconds of hunting
+            if viewModel.gameState == .hunt,
+                Date().timeIntervalSince(huntStartTime) > 30,
+                !showParentOverride
+            {
+                withAnimation {
+                    showParentOverride = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Parent Override
+
+    private var parentOverrideButton: some View {
+        Button(action: {}) {
+            HStack(spacing: 8) {
+                Image(systemName: "questionmark.circle")
+                Text("Need Help?")
+            }
+            .font(.system(size: 14, weight: .medium, design: .rounded))
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: Capsule())
+        }
+        .onLongPressGesture(minimumDuration: 2.0) {
+            // Parent override - force complete the mission
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+
+            // Log the override
+            viewModel.activityLog.log(.parentOverride, details: viewModel.currentMission.title)
+
+            // Complete with partial reward
+            viewModel.forceCompleteMission()
+        }
     }
 
     // MARK: - Camera Layer
@@ -109,27 +183,75 @@ struct MainGameView: View {
         }
     }
 
-    // MARK: - Game HUD Layer
-
     @ViewBuilder
     private func gameHUDLayer(in geometry: GeometryProxy) -> some View {
-        VStack {
-            // Top bar with timer and target
-            topBar
-                .padding(.top, geometry.safeAreaInsets.top + 20)
+        VStack(spacing: 0) {
+            // Top section: Target card prominently displayed
+            VStack(spacing: 16) {
+                topBar
+                    .padding(.top, geometry.safeAreaInsets.top + 12)
 
-            Spacer()
-
-            // Center reticle
-            if viewModel.gameState == .hunt {
-                reticle
+                // Large target display at top
+                targetDisplay
             }
 
             Spacer()
 
-            // Bottom hint
-            bottomHint
-                .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
+            // Bottom: Scanning zone hint + instructions
+            VStack(spacing: 16) {
+                if viewModel.gameState == .lockOn {
+                    Text("TARGET ACQUIRED! HOLD STEADY...")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color(hex: "00FF94"))
+                        .tracking(1)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .transition(.scale.combined(with: .opacity))
+                }
+
+                ScanningZoneHint(
+                    targetName: viewModel.currentTarget.displayName,
+                    isObjectDetected: viewModel.isObjectInZone
+                )
+            }
+            .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.gameState)
+    }
+
+    // MARK: - Target Display
+
+    private var targetDisplay: some View {
+        HStack(spacing: 16) {
+            // Large emoji
+            Text(viewModel.currentTarget.emoji)
+                .font(.system(size: 50))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("FIND")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .tracking(2)
+
+                Text(viewModel.currentTarget.displayName.uppercased())
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.3), .white.opacity(0.1)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         }
     }
 
@@ -137,24 +259,6 @@ struct MainGameView: View {
 
     private var topBar: some View {
         HStack {
-            // Target indicator
-            HStack(spacing: 8) {
-                Image(systemName: "viewfinder")
-                    .font(.system(size: 16, weight: .semibold))
-
-                Text("Find:")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-
-                Text(viewModel.currentTarget.emoji)
-                    .font(.system(size: 24))
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: Capsule())
-
-            Spacer()
-
             // Timer
             TimerDisplay(timeRemaining: viewModel.timeRemaining)
 

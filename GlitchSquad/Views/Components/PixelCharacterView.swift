@@ -3,7 +3,7 @@
 //  GlitchSquad
 //
 //  Animated 2D Pixel character with state-based appearance.
-//  Uses SF Symbols as placeholders until real images are added.
+//  Uses generated PNG images from Assets.xcassets.
 //
 
 import SwiftUI
@@ -20,6 +20,17 @@ struct PixelCharacterView: View {
     @State private var bobOffset: CGFloat = 0
     @State private var glitchOffset: CGFloat = 0
     @State private var isGlitching: Bool = false
+    @State private var glitchOpacity: Double = 1.0
+
+    /// Image name for current state
+    private var imageName: String {
+        switch state {
+        case .idle: return "pixel_idle"
+        case .happy: return "pixel_happy"
+        case .sad: return "pixel_sad"
+        case .glitching: return "pixel_glitch"
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -39,92 +50,15 @@ struct PixelCharacterView: View {
                 .frame(width: size * 1.4, height: size * 1.4)
                 .blur(radius: 20)
 
-            // Character body (glass container)
-            ZStack {
-                // Body background
-                RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .frame(width: size, height: size)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        Color(hex: state.symbolColor).opacity(0.6),
-                                        Color(hex: state.symbolColor).opacity(0.2),
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 2
-                            )
-                    }
-
-                // Face / Icon
-                VStack(spacing: 8) {
-                    // Eyes (two circles or icon)
-                    HStack(spacing: size * 0.15) {
-                        Circle()
-                            .fill(Color(hex: state.symbolColor))
-                            .frame(width: size * 0.18, height: size * 0.18)
-                            .shadow(color: Color(hex: state.symbolColor).opacity(0.8), radius: 5)
-
-                        Circle()
-                            .fill(
-                                state == .glitching
-                                    ? Color.white.opacity(0.3) : Color(hex: state.symbolColor)
-                            )
-                            .frame(width: size * 0.18, height: size * 0.18)
-                            .shadow(color: Color(hex: state.symbolColor).opacity(0.8), radius: 5)
-                            .overlay {
-                                if state == .glitching {
-                                    // Static noise effect
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.white.opacity(0.5), .gray.opacity(0.3)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .mask(Circle())
-                                }
-                            }
-                    }
-
-                    // Mouth
-                    if state == .happy {
-                        // Happy smile
-                        Capsule()
-                            .fill(Color(hex: state.symbolColor))
-                            .frame(width: size * 0.3, height: size * 0.08)
-                    } else if state == .sad {
-                        // Sad curve
-                        Capsule()
-                            .fill(Color(hex: state.symbolColor).opacity(0.5))
-                            .frame(width: size * 0.2, height: size * 0.06)
-                    } else {
-                        // Neutral line
-                        Capsule()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: size * 0.25, height: size * 0.05)
-                    }
-                }
-
-                // Antenna
-                VStack(spacing: 0) {
-                    Circle()
-                        .fill(Color(hex: state.symbolColor))
-                        .frame(width: size * 0.1, height: size * 0.1)
-                        .shadow(color: Color(hex: state.symbolColor), radius: 4)
-
-                    Rectangle()
-                        .fill(Color.white.opacity(0.5))
-                        .frame(width: 2, height: size * 0.12)
-                }
-                .offset(y: -size * 0.55)
-            }
-            .offset(x: isGlitching ? glitchOffset : 0, y: bobOffset)
+            // Character image from assets
+            Image(imageName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .opacity(glitchOpacity)
+                .offset(x: isGlitching ? glitchOffset : 0, y: bobOffset)
+                // Add subtle glow around the character
+                .shadow(color: Color(hex: state.symbolColor).opacity(0.5), radius: 10)
         }
         .onAppear {
             startAnimations()
@@ -149,18 +83,23 @@ struct PixelCharacterView: View {
         isGlitching = state == .glitching
         if isGlitching {
             startGlitchAnimation()
+        } else {
+            glitchOpacity = 1.0
         }
     }
 
     private func startGlitchAnimation() {
-        // Random shake effect
+        // Random shake and flicker effect
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
             if !isGlitching {
                 timer.invalidate()
                 glitchOffset = 0
+                glitchOpacity = 1.0
                 return
             }
             glitchOffset = CGFloat.random(in: -3...3)
+            // Random flicker
+            glitchOpacity = Double.random(in: 0.7...1.0)
         }
     }
 }

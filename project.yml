@@ -24,16 +24,13 @@ targets:
       - path: GlitchSquad
         excludes:
           - "**/*.md"
-          - "Resources/**"
           - "Info.plist"
+          - "Resources/*.mlpackage"
     
     resources:
-      - path: GlitchSquad/Resources/Assets.xcassets
-      - path: GlitchSquad/Resources/yolov8n.mlpackage
-        buildPhase: resources
-      - path: GlitchSquad/Resources/Sounds
-        optional: true
-        buildPhase: resources
+      - path: GlitchSquad/Resources/yolo11l.mlpackage
+      - path: GlitchSquad/Resources/yolo11m.mlpackage
+      - path: GlitchSquad/Resources/yolo11s.mlpackage
     
     settings:
       base:

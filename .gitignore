@@ -64,3 +64,9 @@ iOSInjectionProject/
 # Environment
 .env
 .env.local
+
+# Lab Artifacts
+lab/Combined-Vegetables-*/
+lab/runs/
+lab/dataset/
+lab/__pycache__/
