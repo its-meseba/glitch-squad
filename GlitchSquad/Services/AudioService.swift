@@ -7,6 +7,7 @@
 //
 
 import AVFoundation
+import AudioToolbox  // For system sound fallback
 import SwiftUI
 
 // MARK: - Sound Effect Types
@@ -121,17 +122,19 @@ final class AudioService: ObservableObject {
 
     /// Play a sound effect
     func playSound(_ sound: SoundEffect) {
-        guard let url = Bundle.main.url(forResource: sound.rawValue, withExtension: "mp3") else {
-            print("⚠️ AudioService: Sound file not found: \(sound.rawValue).mp3")
-            return
-        }
-
-        do {
-            sfxPlayer = try AVAudioPlayer(contentsOf: url)
-            sfxPlayer?.prepareToPlay()
-            sfxPlayer?.play()
-        } catch {
-            print("❌ AudioService: Failed to play sound: \(error)")
+        if let url = Bundle.main.url(forResource: sound.rawValue, withExtension: "mp3") {
+            // Play custom sound if available
+            do {
+                sfxPlayer = try AVAudioPlayer(contentsOf: url)
+                sfxPlayer?.prepareToPlay()
+                sfxPlayer?.play()
+            } catch {
+                print("❌ AudioService: Failed to play sound: \(error)")
+                playSystemSoundFallback(for: sound)
+            }
+        } else {
+            // Fallback to system sound
+            playSystemSoundFallback(for: sound)
         }
     }
 
@@ -139,6 +142,26 @@ final class AudioService: ObservableObject {
     func stopSound() {
         sfxPlayer?.stop()
         sfxPlayer = nil
+    }
+
+    /// Play a system sound as fallback when custom asset is missing
+    private func playSystemSoundFallback(for sound: SoundEffect) {
+        let soundID: SystemSoundID
+
+        switch sound {
+        case .targetLock:
+            soundID = 1103  // Tock
+        case .successPowerup, .missionAccept:
+            soundID = 1022  // Cathederal / Success-like chime
+        case .digitizeScan:
+            soundID = 1104  // Tock (faster)
+        case .glitchStatic:
+            soundID = 1057  // Tink (sharp metallic sound)
+        default:
+            soundID = 1057  // Default Tink
+        }
+
+        AudioServicesPlaySystemSound(soundID)
     }
 
     // MARK: - Voice Lines

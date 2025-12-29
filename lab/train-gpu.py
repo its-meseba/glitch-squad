@@ -80,7 +80,7 @@ def main():
         # Train the model
         model.train(
             data=f"{dataset_location}/data.yaml",
-            epochs=20,
+            epochs=100,         # Increased from 20 for better convergence
             imgsz=640,
             plots=True,
             name=f"yolo11{size}_fruit",
@@ -91,7 +91,33 @@ def main():
             workers=16,         # A100 instances usually have 12+ vCPUs
             batch=current_batch,# Dynamic batch size
             cache=True,         # A100 instances have high RAM (40GB+), we can cache images for speed!
-            amp=True            # Automatic Mixed Precision
+            amp=True,           # Automatic Mixed Precision
+            
+            # DATA AUGMENTATION (reduces false positives on non-fruit objects)
+            # -----------------------------------------------------------
+            # Color augmentation - helps model not rely solely on color
+            hsv_h=0.015,        # Hue shift (+/- 1.5% of hue wheel)
+            hsv_s=0.7,          # Saturation shift (+/- 70%)
+            hsv_v=0.4,          # Value/brightness shift (+/- 40%)
+            
+            # Geometric augmentation - prevents overfitting to angles
+            degrees=15.0,       # Random rotation (+/- 15 degrees)
+            translate=0.1,      # Random translation (+/- 10%)
+            scale=0.5,          # Random scale (+/- 50%)
+            shear=2.0,          # Random shear (+/- 2 degrees)
+            perspective=0.0001, # Slight perspective transform
+            
+            # Flipping - horizontal only (fruit orientation matters)
+            flipud=0.0,         # No vertical flip
+            fliplr=0.5,         # 50% chance horizontal flip
+            
+            # Advanced augmentations
+            mosaic=1.0,         # Mosaic augmentation (combines 4 images)
+            mixup=0.1,          # 10% mixup (blends images, reduces overconfidence)
+            copy_paste=0.1,     # 10% copy-paste augmentation
+            
+            # Early stopping to prevent overfitting
+            patience=20         # Stop if no improvement for 20 epochs
         )
         print(f"✅ Training complete for {size}!")
 

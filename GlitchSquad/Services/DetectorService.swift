@@ -51,6 +51,32 @@ actor DetectorService: ObjectDetecting {
     /// Full-frame classifications often have box ~1.0, real detections are smaller
     private let maxBoundingBoxArea: CGFloat = 0.7
 
+    // MARK: - Temporal Stability Filter (Option 3)
+
+    /// Number of consecutive frames required to confirm a detection
+    /// Prevents single-frame false positives (e.g., sofa briefly triggering "apple")
+    private let requiredStableFrames = 5
+
+    /// Tracks consecutive detection count for each label
+    private var stableFrameCounter: [String: Int] = [:]
+
+    /// Last frame's detected labels (for decay logic)
+    private var lastFrameLabels: Set<String> = []
+
+    // MARK: - Aspect Ratio Validation (Option 4)
+
+    /// Expected aspect ratio ranges for each fruit type
+    /// Apples/Oranges are roughly square, Bananas are elongated
+    /// This helps reject non-fruit objects with wrong proportions
+    private let expectedAspectRatios: [String: ClosedRange<CGFloat>] = [
+        "apple": 0.6...1.6,  // Roughly square (allow some variation)
+        "orange": 0.6...1.6,  // Roughly square
+        "banana": 1.5...6.0,  // Elongated (width > height or vice versa)
+    ]
+
+    /// Minimum bounding box area - reject tiny detections (noise)
+    private let minBoundingBoxArea: CGFloat = 0.01
+
     // model name to load
     private let modelName = "yolo11l"
     // MARK: - Initialization
@@ -194,8 +220,9 @@ actor DetectorService: ObjectDetecting {
                     // 1. Only current target fruit
                     // 2. High confidence threshold
                     // 3. Clear confidence margin (not ambiguous)
-                    // 4. Reasonable bounding box size (not full-frame)
+                    // 4. Reasonable bounding box size (not full-frame, not too small)
                     // 5. Detection center must be inside scanning zone
+                    // 6. Aspect ratio must match expected fruit shape (Option 4)
                     let filtered = observations.compactMap { observation -> DetectionResult? in
                         // Check bounding box is inside scanning zone (center point check)
                         let centerX = observation.boundingBox.midX
@@ -215,6 +242,16 @@ actor DetectorService: ObjectDetecting {
                             return nil
                         }
 
+                        // Check bounding box size - reject if too small (noise)
+                        guard boxArea >= minBoundingBoxArea else {
+                            if shouldLog {
+                                print(
+                                    "⚠️ Rejected: bounding box too small (\(String(format: "%.3f", boxArea)) < \(minBoundingBoxArea))"
+                                )
+                            }
+                            return nil
+                        }
+
                         // Check we have at least one label
                         guard let topLabel = observation.labels.first else {
                             return nil
@@ -226,7 +263,8 @@ actor DetectorService: ObjectDetecting {
                         }
 
                         // Check it matches the current target (case-insensitive)
-                        guard topLabel.identifier.lowercased() == targetFruit.lowercased() else {
+                        let detectedLabel = topLabel.identifier.lowercased()
+                        guard detectedLabel == targetFruit.lowercased() else {
                             return nil
                         }
 
@@ -243,18 +281,67 @@ actor DetectorService: ObjectDetecting {
                             }
                         }
 
+                        // OPTION 4: Aspect Ratio Validation
+                        // Check that the bounding box shape matches expected fruit proportions
+                        if let expectedRange = expectedAspectRatios[detectedLabel] {
+                            let width = observation.boundingBox.width
+                            let height = observation.boundingBox.height
+                            // Use max/min to handle both orientations (horizontal or vertical banana)
+                            let aspectRatio = max(width, height) / max(min(width, height), 0.001)
+
+                            guard expectedRange.contains(aspectRatio) else {
+                                if shouldLog {
+                                    print(
+                                        "⚠️ Rejected: aspect ratio \(String(format: "%.2f", aspectRatio)) outside expected \(expectedRange) for \(detectedLabel)"
+                                    )
+                                }
+                                return nil
+                            }
+                        }
+
                         return DetectionResult(
-                            label: topLabel.identifier.lowercased(),
+                            label: detectedLabel,
                             confidence: topLabel.confidence,
                             boundingBox: observation.boundingBox
                         )
                     }
 
-                    if shouldLog && !filtered.isEmpty {
-                        print("✅ Valid \(targetFruit) detection: \(filtered.count) found in zone")
+                    // OPTION 3: Temporal Stability Filter
+                    // Only accept detections that persist across multiple frames
+                    let currentLabels = Set(filtered.map { $0.label })
+
+                    // Increment counter for labels seen this frame
+                    for label in currentLabels {
+                        stableFrameCounter[label, default: 0] += 1
                     }
 
-                    return filtered
+                    // Decay counter for labels NOT seen this frame
+                    for label in lastFrameLabels.subtracting(currentLabels) {
+                        stableFrameCounter[label] = max(0, (stableFrameCounter[label] ?? 0) - 2)
+                    }
+
+                    // Update last frame labels
+                    lastFrameLabels = currentLabels
+
+                    // Filter to only stable detections
+                    let stableFiltered = filtered.filter { result in
+                        let count = stableFrameCounter[result.label, default: 0]
+                        let isStable = count >= requiredStableFrames
+                        if shouldLog && !isStable && count > 0 {
+                            print(
+                                "⏳ Temporal filter: \(result.label) at \(count)/\(requiredStableFrames) stable frames"
+                            )
+                        }
+                        return isStable
+                    }
+
+                    if shouldLog && !stableFiltered.isEmpty {
+                        print(
+                            "✅ Valid \(targetFruit) detection: \(stableFiltered.count) found in zone (stable)"
+                        )
+                    }
+
+                    return stableFiltered
                 }
 
                 // Try as VNClassificationObservation (image classification)
